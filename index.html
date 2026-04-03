@@ -3519,27 +3519,55 @@ window.leaveVC=async()=>{
   toast('Left voice channel');
 };
 window.toggleMute=()=>{if(!localStream)return;mutedAudio=!mutedAudio;localStream.getAudioTracks().forEach(t=>t.enabled=!mutedAudio);updateVCBtns();};
+// ── Shared helper: apply a new video track to all peers, renegotiating if needed ──
+async function applyVideoTrackToPeers(track){
+  // track = null means stop video
+  for(const [target, pc] of Object.entries(pcs)){
+    const sender=pc.getSenders().find(s=>s.track&&s.track.kind==='video');
+    if(track){
+      if(sender){
+        await sender.replaceTrack(track);
+      } else {
+        pc.addTrack(track, localStream);
+        // addTrack triggers onnegotiationneeded automatically
+      }
+    } else {
+      if(sender){
+        // Remove the sender entirely so remote side sees video gone
+        try{ pc.removeTrack(sender); }catch(e){}
+        // onnegotiationneeded fires automatically after removeTrack
+      }
+    }
+  }
+}
+
 window.toggleVideo=async()=>{
   if(screenSharing){toast('Stop screen sharing first.');return;}
   if(!videoOn){
     try{
-      const vs=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720}});
+      const vs=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720,facingMode:'user'}});
       const vt=vs.getVideoTracks()[0];
       if(!vt){toast('No camera found.');return;}
+      // Remove any old video tracks from stream
       localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
       localStream.addTrack(vt);
       videoOn=true;
-      // Force srcObject update on tile so video element picks up new track
-      const selfTile=document.getElementById('vct_'+me.username);
-      if(selfTile){const v=selfTile.querySelector('video');if(v){v.srcObject=localStream;}}
       updateSelfTile();
-      Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(s)s.replaceTrack(vt);else pc.addTrack(vt,localStream);});
-      vt.onended=()=>{videoOn=false;localStream.removeTrack(vt);updateSelfTile();Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(s)s.replaceTrack(null);});updateVCBtns();};
-    }catch(e){toast('Could not access camera. Check permissions.');return;}
+      await applyVideoTrackToPeers(vt);
+      vt.onended=async()=>{
+        videoOn=false;
+        localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
+        updateSelfTile();
+        await applyVideoTrackToPeers(null);
+        updateVCBtns();
+      };
+    }catch(e){toast('Could not access camera. Check permissions: '+e.message);return;}
   } else {
-    localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
-    Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(s)s.replaceTrack(null);});
-    videoOn=false;updateSelfTile();
+    const tracks=localStream.getVideoTracks();
+    tracks.forEach(t=>{t.stop();localStream.removeTrack(t);});
+    videoOn=false;
+    updateSelfTile();
+    await applyVideoTrackToPeers(null);
   }
   updateVCBtns();
 };
@@ -3547,23 +3575,26 @@ window.toggleScreen=async()=>{
   if(!inVC)return;
   if(!screenSharing){
     try{
-      const ss=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
+      const ss=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
       const st=ss.getVideoTracks()[0];
-      st.onended=()=>{screenSharing=false;videoOn=false;localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(s)s.replaceTrack(null);});updateSelfTile();updateVCBtns();};
+      st.onended=async()=>{
+        screenSharing=false;videoOn=false;
+        localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
+        updateSelfTile();
+        await applyVideoTrackToPeers(null);
+        updateVCBtns();
+      };
       localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
       localStream.addTrack(st);
-      // Force srcObject update so screen share shows on self tile
-      const selfTileScr=document.getElementById('vct_'+me.username);
-      if(selfTileScr){const v=selfTileScr.querySelector('video');if(v){v.srcObject=localStream;}}
-      updateSelfTileTrack(st);
-      Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');s?s.replaceTrack(st):pc.addTrack(st,localStream);});
+      updateSelfTile();
+      await applyVideoTrackToPeers(st);
       screenSharing=true;videoOn=true;
     }catch(e){toast('Could not share screen.');return;}
   } else {
     localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});
     screenSharing=false;videoOn=false;
-    Object.values(pcs).forEach(pc=>{const s=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(s)s.replaceTrack(null);});
     updateSelfTile();
+    await applyVideoTrackToPeers(null);
   }
   updateVCBtns();
 };
@@ -3593,15 +3624,14 @@ function addVCTile(username,stream,isLocal){
 function removeVCTile(u){const el=document.getElementById('vct_'+u);if(el)el.remove();delete vcParts[u];}
 function updateSelfTile(){
   const tile=document.getElementById('vct_'+me.username);if(!tile)return;
-  const vid=tile.querySelector('video');
-  const hasVid=localStream&&localStream.getVideoTracks&&localStream.getVideoTracks().filter(t=>t.readyState!=='ended'&&t.enabled).length>0;
-  if(hasVid){
-    if(vid.srcObject!==localStream)vid.srcObject=localStream;
+  const vid=tile.querySelector('video');if(!vid)return;
+  const activeTracks=localStream?localStream.getVideoTracks().filter(t=>t.readyState!=='ended'):[];
+  if(activeTracks.length>0){
+    if(vid.srcObject!==localStream){vid.srcObject=localStream;}
     vid.classList.add('on');
     vid.play().catch(()=>{});
   } else {
     vid.classList.remove('on');
-    // Don't null srcObject so audio continues — just hide video
   }
 }
 function updateSelfTileTrack(){updateSelfTile();}
@@ -3634,29 +3664,80 @@ function listenSignaling(){
   });
 }
 async function initiateCall(target){if(pcs[target])return;const pc=createPC(target);if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));const offer=await pc.createOffer();await pc.setLocalDescription(offer);await push(ref(db,`signaling/${target}/offers`),{from:me.username,offer:{type:offer.type,sdp:offer.sdp}});}
-async function handleOffer(from,offer){if(pcs[from])pcs[from].close();const pc=createPC(from);if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));await pc.setRemoteDescription(new RTCSessionDescription(offer));const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await push(ref(db,`signaling/${from}/answers`),{from:me.username,answer:{type:answer.type,sdp:answer.sdp}});}
+async function handleOffer(from,offer){
+  let pc=pcs[from];
+  if(!pc){
+    // First-time connection — create new PC and add our tracks
+    pc=createPC(from);
+    if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  }
+  // Renegotiation — update existing PC with new offer (don't recreate it)
+  try{
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer=await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await push(ref(db,`signaling/${from}/answers`),{from:me.username,answer:{type:answer.type,sdp:answer.sdp}});
+  }catch(e){
+    // If renegotiation fails, try full reconnect
+    if(pcs[from]){pcs[from].close();delete pcs[from];}
+    const pc2=createPC(from);
+    if(localStream)localStream.getTracks().forEach(t=>pc2.addTrack(t,localStream));
+    await pc2.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer=await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await push(ref(db,`signaling/${from}/answers`),{from:me.username,answer:{type:answer.type,sdp:answer.sdp}});
+  }
+}
 async function handleAnswer(from,answer){const pc=pcs[from];if(!pc)return;await pc.setRemoteDescription(new RTCSessionDescription(answer));}
 async function handleCandidate(from,candidate){const pc=pcs[from];if(!pc||!candidate)return;try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}catch(e){}}
 function createPC(target){
   const pc=new RTCPeerConnection(ICE);pcs[target]=pc;
-  pc.onicecandidate=e=>{if(e.candidate)push(ref(db,`signaling/${target}/candidates`),{from:me.username,candidate:{candidate:e.candidate.candidate,sdpMLineIndex:e.candidate.sdpMLineIndex,sdpMid:e.candidate.sdpMid}});};
+
+  // ICE candidates
+  pc.onicecandidate=e=>{
+    if(e.candidate)push(ref(db,`signaling/${target}/candidates`),{from:me.username,candidate:{candidate:e.candidate.candidate,sdpMLineIndex:e.candidate.sdpMLineIndex,sdpMid:e.candidate.sdpMid}});
+  };
+
+  // RENEGOTIATION — fires when tracks are added/removed after initial connection
+  // Only the caller side (whoever has a lower username alphabetically) sends the new offer
+  // to avoid offer collisions. Both sides handle incoming renegotiation offers normally.
+  pc.onnegotiationneeded=async()=>{
+    try{
+      if(pc.signalingState!=='stable')return; // avoid collision
+      const offer=await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await push(ref(db,`signaling/${target}/offers`),{from:me.username,offer:{type:offer.type,sdp:offer.sdp}});
+    }catch(e){}
+  };
+
+  // Incoming tracks from remote peer
   pc.ontrack=e=>{
-    const stream=e.streams[0];if(!stream)return;
+    const stream=e.streams[0];
     const track=e.track;
     const tile=document.getElementById('vct_'+target);
-    if(!tile){addVCTile(target,stream,false);}
-    else{
-      const vid=tile.querySelector('video');
-      vid.srcObject=stream;
-      if(track.kind==='video'){
-        if(track.readyState!=='ended'&&track.enabled){vid.classList.add('on');vid.play().catch(()=>{});}
-        track.onmute=()=>vid.classList.remove('on');
-        track.onunmute=()=>{vid.classList.add('on');vid.play().catch(()=>{});};
-        track.onended=()=>vid.classList.remove('on');
-      }
+    if(!tile){
+      // Create tile with whatever stream we have
+      addVCTile(target, stream||new MediaStream([track]), false);
+    }
+    const vid=document.getElementById('vct_'+target)?.querySelector('video');
+    if(!vid)return;
+    // Always update srcObject to the latest stream
+    if(stream&&vid.srcObject!==stream){vid.srcObject=stream;vid.play().catch(()=>{});}
+    if(track.kind==='video'){
+      const showVid=()=>{if(track.readyState!=='ended'&&!track.muted){vid.classList.add('on');vid.play().catch(()=>{});}};
+      showVid();
+      track.onunmute=showVid;
+      track.onmute=()=>vid.classList.remove('on');
+      track.onended=()=>vid.classList.remove('on');
     }
   };
-  pc.onconnectionstatechange=()=>{if(pc.connectionState==='disconnected'||pc.connectionState==='failed'){removeVCTile(target);delete pcs[target];}};
+
+  pc.onconnectionstatechange=()=>{
+    if(pc.connectionState==='disconnected'||pc.connectionState==='failed'){
+      removeVCTile(target);
+      delete pcs[target];
+    }
+  };
   return pc;
 }
 
