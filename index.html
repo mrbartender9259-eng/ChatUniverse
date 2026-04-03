@@ -153,6 +153,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);}
 .sysm::before,.sysm::after{content:'';flex:1;height:1px;background:var(--br);}
 .men{background:rgba(162,155,254,.15);color:var(--ac2);border-radius:3px;padding:0 3px;font-weight:600;}
 .men.me{background:rgba(253,234,167,.15);color:var(--yw);}
+/* dm panel — deletable messages */
+.dmb-wrap{position:relative;display:flex;align-items:flex-end;gap:5px;max-width:88%;}
+.dmb-wrap.s{align-self:flex-end;flex-direction:row-reverse;}
+.dmb-wrap.r{align-self:flex-start;}
+.dmb-del{background:none;border:none;color:var(--tx3);font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;opacity:0;transition:opacity .15s;flex-shrink:0;line-height:1;}
+.dmb-wrap:hover .dmb-del{opacity:1;}
+.dmb-del:hover{color:var(--rd);background:rgba(255,107,107,.1);}
 /* dm panel */
 .dmp{width:270px;min-width:270px;background:#0d0d16;border-left:1px solid var(--br);display:none;flex-direction:column;}
 .dmp.on{display:flex;}
@@ -1255,12 +1262,73 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       </div>
     </div>
 
+    <!-- Slow Mode -->
+    <div class="apm-sec">
+      <h3>🐢 Slow Mode</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Limit how often users can send messages in a channel.</div>
+      <div class="apm-row">
+        <div class="fg">
+          <label>Delay (seconds, 0 = off)</label>
+          <input type="number" id="slowModeVal" min="0" max="3600" placeholder="e.g. 10" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+        </div>
+        <button class="apm-btn" onclick="window.applySlowMode()">Apply to Current Channel</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:4px;" id="slowModeStatus"></div>
+    </div>
+
+    <!-- Broadcast to Specific Channel -->
+    <div class="apm-sec">
+      <h3>📣 Broadcast to Channel</h3>
+      <div class="apm-row">
+        <div class="fg">
+          <label>Channel</label>
+          <select id="broadcastChSelect" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label>Message</label><textarea id="broadcastMsgText" placeholder="Type your message..." style="min-height:44px;font-size:13px;"></textarea></div>
+      <button class="apm-btn" style="width:100%;" onclick="window.sendBroadcast()">📣 Send to Channel</button>
+    </div>
+
+    <!-- Clear DMs -->
+    <div class="apm-sec">
+      <h3>💬 Clear DM History</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Wipe all DMs between two users. Both sides are cleared.</div>
+      <div class="apm-row">
+        <div class="fg"><label>User A</label><input type="text" id="dmClearA" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>User B</label><input type="text" id="dmClearB" placeholder="username" maxlength="32"></div>
+        <button class="apm-btn danger" onclick="window.adminClearDMs()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Maintenance Mode -->
+    <div class="apm-sec">
+      <h3>🔧 Maintenance Mode</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Shows a banner to all users saying the server is under maintenance. You can still use the site normally.</div>
+      <div style="display:flex;gap:8px;">
+        <button class="apm-btn" style="flex:1;" onclick="window.setMaintenance(true)">🔧 Enable Maintenance</button>
+        <button class="apm-btn warn" style="flex:1;" onclick="window.setMaintenance(false)">✓ Disable Maintenance</button>
+      </div>
+    </div>
+
+    <!-- Rename User -->
+    <div class="apm-sec">
+      <h3>✏️ Rename User</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Change any user's display name instantly.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="renameUser" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>New display name</label><input type="text" id="renameDisplay" placeholder="New Name" maxlength="32"></div>
+        <button class="apm-btn" onclick="window.adminRenameUser()">Rename</button>
+      </div>
+    </div>
+
     <!-- Danger Zone -->
     <div class="apm-sec">
       <h3 style="color:var(--rd);">☢️ Danger Zone</h3>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminNukeAllMessages()">🗑 Wipe ALL messages in ALL channels</button>
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminKickAll()">👢 Kick everyone from voice</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminWipeAllDMs()">💬 Wipe ALL DMs (everyone)</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminResetAllSlowModes()">🐢 Remove all slow modes</button>
       </div>
     </div>
 
@@ -3287,6 +3355,23 @@ window.openAdmin=function(){
   renderAdminChList();
   renderAdminVcList();
   window.loadAdminUsers();
+  // Populate broadcast channel dropdown
+  const sel=document.getElementById('broadcastChSelect');
+  if(sel){
+    sel.innerHTML='';
+    Object.values(channels).sort((a,b)=>(a.order||0)-(b.order||0)).forEach(ch=>{
+      const o=document.createElement('option');o.value=ch.id;o.textContent=(ch.icon||'#')+' '+ch.name;
+      sel.appendChild(o);
+    });
+  }
+  // Show current channel slow mode
+  const slowVal=document.getElementById('slowModeVal');
+  const slowStatus=document.getElementById('slowModeStatus');
+  if(slowVal&&channels[activeChannel]){
+    slowVal.value=channels[activeChannel].slowMode||0;
+    const sm=channels[activeChannel].slowMode||0;
+    if(slowStatus)slowStatus.textContent=sm>0?`Current: ${sm}s slow mode in #${channels[activeChannel].name}`:`No slow mode in #${channels[activeChannel].name}`;
+  }
   document.getElementById('adminPanel').classList.add('on');
 };
 window.closeAdmin=function(){document.getElementById('adminPanel').classList.remove('on');};
@@ -3450,20 +3535,41 @@ window.closeDM=()=>{activeDM=null;document.getElementById('dmPanel').classList.r
 async function renderDMMessages(username){
   const c=document.getElementById('dmMsgs');
   try{
-    // Only read from our own DM path — direction is stored in each message
     const snap=await get(ref(db,`dms/${me.username}/${username}`));
     let msgs=[];
-    snap.forEach(ch=>{const v=ch.val();msgs.push(v);});
+    snap.forEach(ch=>{const v=ch.val();msgs.push({...v,_key:ch.key});});
     msgs.sort((a,b)=>a.time-b.time);c.innerHTML='';
     if(!msgs.length){c.innerHTML=`<div class="dme"><div style="font-size:32px">💬</div><div>No messages yet</div></div>`;return;}
     msgs.forEach(m=>{
-      const d=document.createElement('div');
-      // dir:'s' = we sent it, dir:'r' = we received it
       const isSent=m.dir==='s'||(m.from===me.username&&!m.dir);
-      d.className='dmb '+(isSent?'s':'r');
+      const wrap=document.createElement('div');
+      wrap.className='dmb-wrap '+(isSent?'s':'r');
+      const bubble=document.createElement('div');
+      bubble.className='dmb '+(isSent?'s':'r');
       const t=new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-      d.innerHTML=`${esc(m.text)}<div class="bt">${t}</div>`;
-      c.appendChild(d);
+      bubble.innerHTML=`${esc(m.text)}<div class="bt">${t}</div>`;
+      // Delete button — shown on hover
+      const delBtn=document.createElement('button');
+      delBtn.className='dmb-del';
+      delBtn.textContent='✕';
+      delBtn.title='Delete message';
+      delBtn.onclick=async()=>{
+        if(!confirm('Delete this message?'))return;
+        // Delete from both sides
+        await Promise.all([
+          remove(ref(db,`dms/${me.username}/${username}/${m._key}`)),
+          // Also delete from their side by finding message with same timestamp
+          get(ref(db,`dms/${username}/${me.username}`)).then(s=>{
+            const toDelete=[];
+            s.forEach(ch=>{if(Math.abs(ch.val().time-m.time)<2)toDelete.push(ch.key);});
+            return Promise.all(toDelete.map(k=>remove(ref(db,`dms/${username}/${me.username}/${k}`))));
+          })
+        ]);
+        renderDMMessages(username);
+      };
+      wrap.appendChild(bubble);
+      wrap.appendChild(delBtn);
+      c.appendChild(wrap);
     });
     c.scrollTop=c.scrollHeight;
   }catch(e){}
@@ -4549,6 +4655,112 @@ window.adminKickAll=async function(){
   if(!confirm('Kick everyone from all voice channels?'))return;
   await remove(ref(db,'vc_presence'));
   toast('👢 All voice channels cleared.');
+};
+window.adminWipeAllDMs=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Wipe ALL DMs for ALL users? This cannot be undone.'))return;
+  await remove(ref(db,'dms'));
+  toast('💬 All DMs wiped.');
+};
+window.adminResetAllSlowModes=async function(){
+  if(!isAdmin())return;
+  await Promise.all(Object.keys(channels).map(id=>update(ref(db,`channels/${id}`),{slowMode:0})));
+  toast('🐢 All slow modes removed.');
+};
+
+// ── SLOW MODE ──
+window.applySlowMode=async function(){
+  if(!isAdmin())return;
+  const val=parseInt(document.getElementById('slowModeVal').value)||0;
+  await update(ref(db,`channels/${activeChannel}`),{slowMode:val});
+  const status=document.getElementById('slowModeStatus');
+  status.textContent=val>0?`Slow mode set to ${val}s in #${channels[activeChannel]?.name}`:`Slow mode disabled in #${channels[activeChannel]?.name}`;
+  toast(val>0?`🐢 Slow mode: ${val}s`:'🐢 Slow mode off');
+};
+
+// Apply slow mode check on message send
+const _origSendMsg=window.sendMsg;
+let _lastSentTime={};
+window.sendMsg=async()=>{
+  const ch=channels[activeChannel];
+  const slowMode=ch?.slowMode||0;
+  if(slowMode>0&&!isAdmin()){
+    const last=_lastSentTime[activeChannel]||0;
+    const diff=(Date.now()-last)/1000;
+    if(diff<slowMode){
+      toast(`🐢 Slow mode — wait ${Math.ceil(slowMode-diff)}s`);
+      return;
+    }
+  }
+  _lastSentTime[activeChannel]=Date.now();
+  return _origSendMsg();
+};
+
+// ── BROADCAST TO CHANNEL ──
+window.sendBroadcast=async function(){
+  if(!isAdmin())return;
+  const chId=document.getElementById('broadcastChSelect').value;
+  const text=document.getElementById('broadcastMsgText').value.trim();
+  if(!chId||!text){toast('Pick a channel and enter a message.');return;}
+  await push(ref(db,`channelMessages/${chId}`),{system:true,text:`📣 [ADMIN] ${text}`,time:Date.now()});
+  document.getElementById('broadcastMsgText').value='';
+  toast(`📣 Sent to #${channels[chId]?.name||chId}`);
+};
+
+// ── CLEAR DMs BETWEEN TWO USERS ──
+window.adminClearDMs=async function(){
+  if(!isAdmin())return;
+  const a=document.getElementById('dmClearA').value.trim().toLowerCase();
+  const b=document.getElementById('dmClearB').value.trim().toLowerCase();
+  if(!a||!b){toast('Enter both usernames.');return;}
+  if(!confirm(`Clear all DMs between @${a} and @${b}?`))return;
+  await Promise.all([
+    remove(ref(db,`dms/${a}/${b}`)),
+    remove(ref(db,`dms/${b}/${a}`))
+  ]);
+  document.getElementById('dmClearA').value='';
+  document.getElementById('dmClearB').value='';
+  toast(`💬 DMs between @${a} and @${b} cleared.`);
+};
+
+// ── MAINTENANCE MODE ──
+window.setMaintenance=async function(on){
+  if(!isAdmin())return;
+  await set(ref(db,'siteConfig/maintenance'),on?{active:true,message:'The server is currently under maintenance. Things may be unstable.'}:null);
+  toast(on?'🔧 Maintenance mode ON':'✓ Maintenance mode OFF');
+};
+
+// Listen for maintenance mode and show banner
+onValue(ref(db,'siteConfig/maintenance'),snap=>{
+  let banner=document.getElementById('maintenanceBanner');
+  if(snap.exists()&&snap.val()?.active){
+    if(!banner){
+      banner=document.createElement('div');
+      banner.id='maintenanceBanner';
+      banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#f97316,#fbbf24);color:#000;font-size:12px;font-weight:600;text-align:center;padding:6px 12px;';
+      banner.textContent='🔧 Server under maintenance — things may be unstable. Check back soon!';
+      document.body.prepend(banner);
+    }
+  } else {
+    if(banner)banner.remove();
+  }
+});
+
+// ── RENAME USER ──
+window.adminRenameUser=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('renameUser').value.trim().toLowerCase();
+  const newName=document.getElementById('renameDisplay').value.trim();
+  if(!username||!newName){toast('Enter username and new name.');return;}
+  const snap=await get(ref(db,`accounts/${username}`));
+  if(!snap.exists()){toast('User not found.');return;}
+  await update(ref(db,`accounts/${username}`),{displayName:newName});
+  // Also update presence so it reflects immediately
+  await update(ref(db,`presence/${username}`),{displayName:newName});
+  document.getElementById('renameUser').value='';
+  document.getElementById('renameDisplay').value='';
+  toast(`✏️ @${username} renamed to "${newName}"`);
+  window.loadAdminUsers();
 };
 
 // ── BAN CHECK ON LOGIN ──
