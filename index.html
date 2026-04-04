@@ -819,8 +819,9 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       </div>
       <div class="dmp" id="dmPanel">
         <div class="dmh">
-          <div class="dmhav" id="dmHAv"></div>
-          <div class="dmhn" id="dmHName"></div>
+          <div class="dmhav" id="dmHAv" style="cursor:pointer;" onclick="openGroupSettings()"></div>
+          <div class="dmhn" id="dmHName" style="cursor:pointer;flex:1;" onclick="openGroupSettings()"></div>
+          <button class="ib" id="grpSettingsBtn" onclick="openGroupSettings()" style="display:none;" title="Group settings">⚙</button>
           <button class="ib" onclick="closeDM()">✕</button>
         </div>
         <div class="dmms" id="dmMsgs"></div>
@@ -1123,13 +1124,45 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       <h3>&#128172; Create Group DM</h3>
       <div class="fg" style="margin-bottom:10px;">
         <label>Group Name</label>
-        <input type="text" id="gdmName" placeholder="My Group" maxlength="32">
+        <input type="text" id="gdmName" placeholder="Group" maxlength="32">
       </div>
       <div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;">Select Friends</div>
       <div class="gdm-check-list" id="gdmFriendList"></div>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button class="canbtn" style="flex:1;padding:9px;" onclick="closeGDMModal()">Cancel</button>
         <button class="abtn" style="flex:1;margin-top:0;padding:9px;" onclick="createGroupDM()">Create Group</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP SETTINGS MODAL -->
+  <div class="mbd h" id="grpSettingsBD" onclick="if(event.target===this)closeGroupSettings()">
+    <div class="sm" onclick="event.stopPropagation()" style="width:380px;padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="smtitle">&#9881; Group Settings</div>
+        <button class="ib" onclick="closeGroupSettings()">&#10005;</button>
+      </div>
+      <!-- Group avatar -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px;">
+        <div id="grpAvPreview" onclick="document.getElementById('grpAvFile').click()" style="width:72px;height:72px;border-radius:16px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;border:2px solid var(--br2);overflow:hidden;transition:opacity .15s;" title="Click to change group picture">&#128101;</div>
+        <input type="file" id="grpAvFile" accept="image/*" style="display:none;" onchange="handleGroupAvUpload(event)">
+        <div style="font-size:11px;color:var(--tx3);">Click the icon to change the group picture</div>
+      </div>
+      <!-- Group name -->
+      <div class="fg" style="margin-bottom:14px;">
+        <label>Group Name</label>
+        <input type="text" id="grpNameInput" maxlength="32" placeholder="Group">
+      </div>
+      <!-- Member list -->
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;">Members</div>
+      <div id="grpMemberList" style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px;max-height:160px;overflow-y:auto;"></div>
+      <!-- Leave group -->
+      <div style="display:flex;gap:8px;">
+        <button class="canbtn" style="flex:1;" onclick="closeGroupSettings()">Cancel</button>
+        <button class="abtn" style="flex:1;margin-top:0;" onclick="saveGroupSettings()">Save</button>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="pbtn" style="width:100%;color:var(--rd);border-color:rgba(255,107,107,.2);font-size:12px;" onclick="leaveGroup()">&#128682; Leave Group</button>
       </div>
     </div>
   </div>
@@ -1438,6 +1471,81 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       <button class="apm-btn" style="width:100%;" onclick="window.adminSaveNote()">💾 Save Note</button>
     </div>
 
+    <!-- Give Coins / Economy -->
+    <div class="apm-sec">
+      <h3>🪙 User Coins</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Give or take coins from any user. Shown on their profile.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="coinUser" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>Amount (negative to remove)</label><input type="number" id="coinAmount" placeholder="100"></div>
+        <button class="apm-btn" onclick="window.adminGiveCoins()">Give</button>
+      </div>
+    </div>
+
+    <!-- Announcement Banner -->
+    <div class="apm-sec">
+      <h3>🚨 Emergency Alert</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Flashes a full-screen red alert for all users for 5 seconds. Use for important announcements.</div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="alertText" placeholder="Server going down in 10 minutes!" style="min-height:44px;font-size:13px;"></textarea></div>
+      <button class="apm-btn danger" style="width:100%;" onclick="window.sendEmergencyAlert()">🚨 Send Emergency Alert</button>
+    </div>
+
+    <!-- Custom Status for User -->
+    <div class="apm-sec">
+      <h3>💬 Set User Status</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Force a custom status text on any user's profile (visible to all).</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="statusUser" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>Status text</label><input type="text" id="statusText" placeholder="e.g. 🎮 Gaming" maxlength="48"></div>
+        <button class="apm-btn" onclick="window.adminSetStatus()">Set</button>
+        <button class="apm-btn warn" onclick="window.adminClearStatus()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Pin Message -->
+    <div class="apm-sec">
+      <h3>📌 Pinned Message</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Pin a message to the top of any channel. Only one pinned message per channel.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Channel</label>
+          <select id="pinChSelect" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="pinMsgText" placeholder="Pinned message text..." style="min-height:44px;font-size:13px;"></textarea></div>
+      <div style="display:flex;gap:8px;">
+        <button class="apm-btn" style="flex:1;" onclick="window.adminPinMessage()">📌 Pin</button>
+        <button class="apm-btn warn" onclick="window.adminUnpinMessage()">Unpin</button>
+      </div>
+    </div>
+
+    <!-- Bulk DM -->
+    <div class="apm-sec">
+      <h3>📨 Bulk DM Everyone</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Send a DM from your account to every single user on the server.</div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="bulkDMText" placeholder="Hey everyone! Check out the new update..." style="min-height:52px;font-size:13px;"></textarea></div>
+      <button class="apm-btn warn" style="width:100%;" onclick="window.adminBulkDM()">📨 Send to Everyone</button>
+    </div>
+
+    <!-- Delete All From User -->
+    <div class="apm-sec">
+      <h3>🗑 Delete All Messages From User</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Remove every message this user ever sent across all channels.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="nukeUserMsgs" placeholder="username" maxlength="32"></div>
+        <button class="apm-btn danger" onclick="window.adminNukeUserMessages()">🗑 Delete All</button>
+      </div>
+    </div>
+
+    <!-- Transfer Ownership -->
+    <div class="apm-sec">
+      <h3>👑 Transfer Admin</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Grant admin to another user instantly.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="transferAdminUser" placeholder="username" maxlength="32"></div>
+        <button class="apm-btn warn" onclick="window.adminTransferAdmin()">👑 Grant Admin</button>
+      </div>
+    </div>
+
     <!-- Danger Zone -->
     <div class="apm-sec">
       <h3 style="color:var(--rd);">☢️ Danger Zone</h3>
@@ -1450,6 +1558,9 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminUnlockAllChannels()">🔓 Unlock all channels</button>
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminWipeWordFilter()">🚫 Clear word filter</button>
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminUnbanAll()">⚖️ Unban everyone</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminDeleteAllGroups()">&#128101; Delete ALL group DMs</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminWipeAllBadges()">🏅 Remove all user badges</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminResetAllCoins()">🪙 Reset everyone's coins to 0</button>
       </div>
     </div>
 
@@ -2036,7 +2147,7 @@ window.__firebaseLoaded = true;
 // Main app (was module — now plain script since Firebase is already loaded)
 
 const fbApp = initializeApp({
-  apiKey: "AIzaSyAx_-2PLTrm6vTr210Y6eBNYML2jNZoA4I",
+  apiKey: "AIzaSyBEKKIzIXL2ImSxeZlN9kmc7zih4ZtklCM",
   authDomain: "chat-universal-63e99.firebaseapp.com",
   databaseURL: "https://chat-universal-63e99-default-rtdb.firebaseio.com",
   projectId: "chat-universal-63e99",
@@ -2132,6 +2243,25 @@ function setLogoFavicon(){
 
 // ── Changelog / Update Log ──
 const CHANGELOG = [
+  {
+    version: 'v2.6.0',
+    date: 'April 4, 2026',
+    type: 'major',
+    title: 'Groups, Cameras & Admin Overload!',
+    subtitle: 'Group upgrades, camera zoom, mic/speaker settings, and a ridiculous amount of admin commands.',
+    items: [
+      { icon: '✏️', text: '<strong>Group Renaming</strong> — Rename any group DM from the new Group Settings panel.' },
+      { icon: '🖼️', text: '<strong>Custom Group Pictures</strong> — Upload a custom image for any group. Shows in the sidebar and chat header.' },
+      { icon: '🚪', text: '<strong>Leave Group</strong> — Leave any group DM from the Group Settings panel.' },
+      { icon: '🔍', text: '<strong>Camera Zoom</strong> — Click any camera tile in a voice call to zoom in fullscreen. Press Escape to close.' },
+      { icon: '🎙️', text: '<strong>Mic & Speaker Settings</strong> — Choose your microphone input and headphone output in Settings. Saves automatically.' },
+      { icon: '🔊', text: '<strong>Audio Fix</strong> — Voice calls now use a dedicated audio element so you no longer need to rejoin to hear people.' },
+      { icon: '👥', text: '<strong>User Management Fix</strong> — Admin panel now loads every single user correctly with working search and filters.' },
+      { icon: '🗑️', text: '<strong>Delete DMs</strong> — Hover over any DM message and click ✕ to delete it from both sides.' },
+      { icon: '⚡', text: '<strong>Massive Admin Expansion</strong> — Coins, emergency alerts, bulk DM, pin messages, status setting, delete all messages from a user, and much more.' },
+    ],
+    footer: 'This one was huge. Enjoy the power. 😈',
+  },
   {
     version: 'v2.5.0',
     date: 'April 3, 2026',
@@ -3661,7 +3791,8 @@ function selPing(){const u=pingUs[pingIdx>=0?pingIdx:0];if(!u)return;const inp=d
 
 // ── DMs ──
 window.openDM=async function(username){
-  activeDM=username;
+  activeDM=username;activeGroupId=null;
+  const gsBtn2=document.getElementById('grpSettingsBtn');if(gsBtn2)gsBtn2.style.display='none';
   let partner=onlineUs[username];
   if(!partner){try{const s=await get(ref(db,`accounts/${username}`));if(s.exists())partner=s.val();}catch(e){}}
   partner=partner||{username,displayName:username,avatar:{type:'emoji',val:'👤'}};
@@ -5304,12 +5435,14 @@ window.openAdmin=async function(){
     if(rt&&snap.exists())rt.value=snap.val();
     const mt=document.getElementById('motdText');
     if(mt){const ms=await get(ref(db,'siteConfig/motd'));if(ms.exists())mt.value=ms.val().text||'';}
-    // Populate lock/impersonate channel dropdowns
-    ['lockChSelect','impersonateCh'].forEach(selId=>{
+    // Populate all channel dropdowns
+    ['lockChSelect','impersonateCh','pinChSelect'].forEach(selId=>{
       const sel=document.getElementById(selId);if(!sel)return;
       sel.innerHTML='';
       Object.values(channels).sort((a,b)=>(a.order||0)-(b.order||0)).forEach(ch=>{
-        const o=document.createElement('option');o.value=ch.id;o.textContent=(ch.icon||'#')+' '+ch.name;sel.appendChild(o);
+        const o=document.createElement('option');o.value=ch.id;o.textContent=(ch.icon||'#')+' '+ch.name;
+        if(selId==='pinChSelect'&&ch.id===activeChannel)o.selected=true;
+        sel.appendChild(o);
       });
     });
   }catch(e){}
@@ -5330,6 +5463,190 @@ window.adminSaveNote=async function(){
   await set(ref(db,`adminNotes/${username}`),note||null);
   toast(`📝 Note saved for @${username}`);
 };
+
+// ── COINS ──
+window.adminGiveCoins=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('coinUser').value.trim().toLowerCase();
+  const amount=parseInt(document.getElementById('coinAmount').value)||0;
+  if(!username||!amount){toast('Enter username and amount.');return;}
+  const snap=await get(ref(db,`accounts/${username}/coins`));
+  const current=snap.exists()?snap.val():0;
+  const newTotal=Math.max(0,current+amount);
+  await update(ref(db,`accounts/${username}`),{coins:newTotal});
+  document.getElementById('coinUser').value='';document.getElementById('coinAmount').value='';
+  toast(`🪙 @${username} now has ${newTotal} coins`);
+  window.loadAdminUsers();
+};
+window.adminResetAllCoins=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Reset ALL coins to 0 for everyone?'))return;
+  const snap=await get(ref(db,'accounts'));
+  const updates={};
+  snap.forEach(c=>{updates[`accounts/${c.key}/coins`]=0;});
+  await update(ref(db),updates);
+  toast('🪙 All coins reset to 0');
+};
+
+// ── EMERGENCY ALERT ──
+window.sendEmergencyAlert=async function(){
+  if(!isAdmin())return;
+  const msg=document.getElementById('alertText').value.trim();
+  if(!msg){toast('Enter alert text.');return;}
+  await set(ref(db,'siteConfig/emergencyAlert'),{text:msg,time:Date.now()});
+  document.getElementById('alertText').value='';
+  toast('🚨 Alert sent!');
+};
+// Listen for emergency alerts
+onValue(ref(db,'siteConfig/emergencyAlert'),snap=>{
+  if(!snap.exists())return;
+  const data=snap.val();
+  if(!data||!data.text)return;
+  // Only show if within last 10 seconds
+  if(Date.now()-data.time>10000)return;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(200,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;animation:none;';
+  overlay.innerHTML=`<div style="font-size:48px;margin-bottom:12px;">🚨</div><div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:10px;">EMERGENCY ALERT</div><div style="font-size:16px;max-width:500px;">${esc(data.text)}</div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>overlay.remove(),6000);
+});
+
+// ── USER STATUS ──
+window.adminSetStatus=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('statusUser').value.trim().toLowerCase();
+  const status=document.getElementById('statusText').value.trim();
+  if(!username){toast('Enter a username.');return;}
+  await update(ref(db,`accounts/${username}`),{customStatus:status});
+  await update(ref(db,`presence/${username}`),{customStatus:status});
+  document.getElementById('statusText').value='';
+  toast(`💬 Status set for @${username}`);
+};
+window.adminClearStatus=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('statusUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  await update(ref(db,`accounts/${username}`),{customStatus:null});
+  await update(ref(db,`presence/${username}`),{customStatus:null});
+  document.getElementById('statusUser').value='';
+  toast(`💬 Status cleared for @${username}`);
+};
+
+// ── PIN MESSAGE ──
+window.adminPinMessage=async function(){
+  if(!isAdmin())return;
+  const chId=document.getElementById('pinChSelect').value;
+  const text=document.getElementById('pinMsgText').value.trim();
+  if(!chId||!text){toast('Pick channel and enter text.');return;}
+  await set(ref(db,`pinnedMessages/${chId}`),{text,pinnedBy:me.username,time:Date.now()});
+  document.getElementById('pinMsgText').value='';
+  toast(`📌 Pinned in #${channels[chId]?.name||chId}`);
+  renderPinnedMessage(chId);
+};
+window.adminUnpinMessage=async function(){
+  if(!isAdmin())return;
+  const chId=document.getElementById('pinChSelect').value;
+  if(!chId){toast('Pick a channel.');return;}
+  await remove(ref(db,`pinnedMessages/${chId}`));
+  toast('Unpinned');
+  renderPinnedMessage(chId);
+};
+// Show pinned message at top of channel
+async function renderPinnedMessage(chId){
+  let banner=document.getElementById('pinnedBanner');
+  const snap=await get(ref(db,`pinnedMessages/${chId}`));
+  if(snap.exists()){
+    const p=snap.val();
+    if(!banner){
+      banner=document.createElement('div');banner.id='pinnedBanner';
+      banner.style.cssText='background:rgba(108,92,231,.12);border-bottom:1px solid rgba(108,92,231,.25);padding:6px 14px;font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px;';
+      const msgs=document.getElementById('msgs');if(msgs&&msgs.parentNode)msgs.parentNode.insertBefore(banner,msgs);
+    }
+    banner.innerHTML=`<span style="color:var(--ac2);">📌</span> ${esc(p.text)} <span style="color:var(--tx3);font-size:10px;margin-left:auto;">pinned</span>`;
+  } else {
+    if(banner)banner.remove();
+  }
+}
+// Refresh pinned message when switching channels
+const _origSwitchChannel=window.switchChannel||function(){};
+
+// ── BULK DM ──
+window.adminBulkDM=async function(){
+  if(!isAdmin())return;
+  const text=document.getElementById('bulkDMText').value.trim();
+  if(!text){toast('Enter a message.');return;}
+  if(!confirm(`Send DM to ALL users? This cannot be undone.`))return;
+  const snap=await get(ref(db,'accounts'));
+  const now=Date.now();
+  const batch=[];
+  snap.forEach(c=>{
+    const u=c.val();
+    if(u.username&&u.username!==me.username){
+      const sentMsg={from:me.username,to:u.username,text,time:now,dir:'s'};
+      const recvMsg={from:me.username,to:u.username,text,time:now,dir:'r'};
+      batch.push(push(ref(db,`dms/${me.username}/${u.username}`),sentMsg));
+      batch.push(push(ref(db,`dms/${u.username}/${me.username}`),recvMsg));
+    }
+  });
+  await Promise.all(batch);
+  document.getElementById('bulkDMText').value='';
+  toast(`📨 DM sent to ${batch.length/2} users`);
+};
+
+// ── DELETE ALL MESSAGES FROM USER ──
+window.adminNukeUserMessages=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('nukeUserMsgs').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  if(!confirm(`Delete ALL messages from @${username} in ALL channels? Cannot be undone.`))return;
+  let count=0;
+  await Promise.all(Object.keys(channels).map(async chId=>{
+    const snap=await get(ref(db,`channelMessages/${chId}`));
+    const toDelete=[];
+    snap.forEach(m=>{if(m.val().author===username)toDelete.push(m.key);});
+    await Promise.all(toDelete.map(k=>remove(ref(db,`channelMessages/${chId}/${k}`))));
+    count+=toDelete.length;
+  }));
+  document.getElementById('nukeUserMsgs').value='';
+  toast(`🗑 Deleted ${count} messages from @${username}`);
+};
+
+// ── TRANSFER ADMIN ──
+window.adminTransferAdmin=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('transferAdminUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  if(!confirm(`Grant admin to @${username}? They will have full admin powers.`))return;
+  const snap=await get(ref(db,`accounts/${username}`));
+  if(!snap.exists()){toast('User not found.');return;}
+  await update(ref(db,`accounts/${username}`),{isAdmin:true});
+  document.getElementById('transferAdminUser').value='';
+  toast(`👑 Admin granted to @${username}`);
+  window.loadAdminUsers();
+};
+
+// ── DELETE ALL GROUPS ──
+window.adminDeleteAllGroups=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Delete ALL group DMs for everyone? Cannot be undone.'))return;
+  await remove(ref(db,'groupDMs'));
+  await remove(ref(db,'groupMessages'));
+  toast('&#128101; All groups deleted');
+};
+
+// ── WIPE ALL BADGES ──
+window.adminWipeAllBadges=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Remove ALL badges from ALL users?'))return;
+  const snap=await get(ref(db,'accounts'));
+  const updates={};
+  snap.forEach(c=>{if(c.val().badge)updates[`accounts/${c.key}/badge`]=null;});
+  if(Object.keys(updates).length)await update(ref(db),updates);
+  toast('🏅 All badges removed');
+  window.loadAdminUsers();
+};
+
+// Pin channel dropdown is populated inside openAdmin already (merged below)
 
 // ── UNBAN ALL ──
 window.adminUnbanAll=async function(){
@@ -5670,6 +5987,86 @@ window.openGDMModal=function(){
 
 window.closeGDMModal=function(){document.getElementById('gdmModal').classList.remove('on');};
 
+// ── GROUP SETTINGS ──
+window.openGroupSettings=function(){
+  if(!activeGroupId)return;
+  const g=myGroups[activeGroupId];if(!g)return;
+  document.getElementById('grpNameInput').value=g.name||'Group';
+  // Show avatar preview
+  const prev=document.getElementById('grpAvPreview');
+  if(prev){
+    prev.innerHTML='';
+    if(g.avatar){
+      const img=document.createElement('img');img.src=g.avatar;img.style.cssText='width:100%;height:100%;object-fit:cover;';
+      prev.appendChild(img);prev.style.background='none';
+    } else {
+      prev.textContent='&#128101;';prev.style.background='linear-gradient(135deg,var(--ac),var(--ac2))';
+    }
+  }
+  // Member list
+  const ml=document.getElementById('grpMemberList');
+  if(ml){
+    ml.innerHTML='';
+    Object.keys(g.members||{}).forEach(u=>{
+      const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:8px;font-size:12px;';
+      const av=document.createElement('div');av.style.cssText='width:22px;height:22px;flex-shrink:0;';avInto(av,(onlineUs[u]||{}).avatar||{type:'emoji',val:'👤'},10);
+      const nm=document.createElement('span');nm.textContent=(onlineUs[u]?.displayName||u)+(u===g.createdBy?' 👑':'')+(u===me.username?' (you)':'');nm.style.flex='1';
+      row.appendChild(av);row.appendChild(nm);
+      ml.appendChild(row);
+    });
+  }
+  document.getElementById('grpSettingsBD').classList.remove('h');
+};
+window.closeGroupSettings=function(){document.getElementById('grpSettingsBD').classList.add('h');};
+
+window.saveGroupSettings=async function(){
+  if(!activeGroupId)return;
+  const newName=document.getElementById('grpNameInput').value.trim()||'Group';
+  const upd={name:newName};
+  if(window._pendingGrpAvatar){upd.avatar=window._pendingGrpAvatar;window._pendingGrpAvatar=null;}
+  await update(ref(db,`groupDMs/${activeGroupId}`),upd);
+  // Refresh header
+  const g=myGroups[activeGroupId];if(g){g.name=newName;if(upd.avatar)g.avatar=upd.avatar;}
+  openGroupChat(activeGroupId);
+  closeGroupSettings();
+  renderSidebarGroups();
+  toast('&#9989; Group updated!');
+};
+
+window.handleGroupAvUpload=function(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>2*1024*1024){toast('Image too large — max 2MB');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    window._pendingGrpAvatar=ev.target.result;
+    const prev=document.getElementById('grpAvPreview');
+    if(prev){
+      prev.innerHTML='';prev.style.background='none';
+      const img=document.createElement('img');img.src=ev.target.result;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:14px;';
+      prev.appendChild(img);
+    }
+    toast('&#128247; Picture ready — click Save to apply');
+  };
+  reader.readAsDataURL(file);
+};
+
+window.leaveGroup=async function(){
+  if(!activeGroupId)return;
+  if(!confirm('Leave this group? You will not see it anymore.'))return;
+  const g=myGroups[activeGroupId];
+  // Remove from members
+  await remove(ref(db,`groupDMs/${activeGroupId}/members/${me.username}`));
+  // If only 1 member left, delete group
+  const remaining=Object.keys(g.members||{}).filter(u=>u!==me.username);
+  if(remaining.length===0)await remove(ref(db,`groupDMs/${activeGroupId}`));
+  closeGroupSettings();
+  closeDM();
+  delete myGroups[activeGroupId];
+  activeGroupId=null;
+  renderSidebarGroups();
+  toast('Left group.');
+};
+
 window.createGroupDM=async function(){
   if(gdmSelectedFriends.size<1){toast('Select at least 1 friend.');return;}
   const name=document.getElementById('gdmName').value.trim()||'Group';
@@ -5689,17 +6086,28 @@ let activeGroupId=null;
 function openGroupChat(gid){
   activeGroupId=gid;
   const g=myGroups[gid];if(!g)return;
-  // Reuse the DM panel for group chats
   activeDM=null;
   const panel=document.getElementById('dmPanel');
   if(panel){
     panel.classList.add('on');
+    // Group avatar — show custom image or default emoji
     const hav=document.getElementById('dmHAv');
-    if(hav){hav.innerHTML='';hav.style.cssText='width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;';hav.textContent='&#128101;';}
+    if(hav){
+      hav.innerHTML='';
+      hav.style.cssText='width:28px;height:28px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;cursor:pointer;';
+      if(g.avatar){
+        const img=document.createElement('img');img.src=g.avatar;img.style.cssText='width:100%;height:100%;object-fit:cover;';
+        hav.appendChild(img);
+      } else {
+        hav.style.background='linear-gradient(135deg,var(--ac),var(--ac2))';
+        hav.textContent='&#128101;';
+      }
+    }
     const hn=document.getElementById('dmHName');if(hn)hn.textContent=g.name||'Group';
+    // Show settings cog for groups
+    const gsBtn=document.getElementById('grpSettingsBtn');if(gsBtn)gsBtn.style.display='';
     renderGroupMessages(gid);
-    // Override the DM input send to go to group
-    const inp=document.getElementById('dmIn');if(inp)inp.placeholder='Message '+g.name+'...';
+    const inp=document.getElementById('dmIn');if(inp)inp.placeholder='Message '+(g.name||'Group')+'...';
   }
   switchTab('chat');
 }
@@ -5751,7 +6159,14 @@ function renderSidebarGroups(){
   list.innerHTML='';
   Object.entries(myGroups).forEach(([gid,g])=>{
     const d=document.createElement('div');d.className='grp-item'+(activeGroupId===gid?' on':'');
-    const av=document.createElement('div');av.className='grp-av';av.textContent='&#128101;';
+    const av=document.createElement('div');av.className='grp-av';
+    if(g.avatar){
+      av.style.cssText='overflow:hidden;background:none;padding:0;';
+      const img=document.createElement('img');img.src=g.avatar;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:7px;';
+      av.appendChild(img);
+    } else {
+      av.textContent='&#128101;';
+    }
     const nm=document.createElement('span');nm.textContent=g.name||'Group';nm.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
     d.appendChild(av);d.appendChild(nm);
     d.onclick=()=>{openGroupChat(gid);};
