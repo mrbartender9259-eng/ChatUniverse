@@ -191,6 +191,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);}
 .piav{width:22px;height:22px;border-radius:50%;overflow:hidden;background:var(--s4);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
 .piav img{width:100%;height:100%;object-fit:cover;}
 
+/* CAMERA ZOOM OVERLAY */
+#camZoom{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;}
+#camZoom.on{display:flex;}
+#camZoom video{max-width:96vw;max-height:92vh;border-radius:12px;object-fit:contain;}
+#camZoom .cz-label{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:13px;font-weight:600;padding:6px 18px;border-radius:20px;pointer-events:none;}
+#camZoom .cz-close{position:fixed;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;}
+#camZoom .cz-close:hover{background:rgba(255,255,255,.25);}
 /* VOICE OVERLAY */
 #vco{position:fixed;inset:0;z-index:400;background:rgba(7,7,12,.96);backdrop-filter:blur(10px);display:none;flex-direction:column;}
 #vco.on{display:flex;}
@@ -392,7 +399,7 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
 /* ADMIN PANEL MODAL */
 .adminpanel{position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
 .adminpanel.on{display:flex;}
-.apm{background:var(--s1);border:1px solid var(--br);border-radius:20px;width:620px;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.7);scrollbar-width:none;}
+.apm{background:var(--s1);overflow-y:auto;border:1px solid var(--br);border-radius:20px;width:620px;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.7);scrollbar-width:none;}
 .apm::-webkit-scrollbar{display:none;}
 .apm-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:10px;}
 .apm-badge{background:rgba(255,234,167,.15);color:var(--yw);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;}
@@ -579,7 +586,7 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
 .streamframe{flex:1;border:none;width:100%;height:100%;}
 
 /* ── Admin User Management ── */
-.user-list{display:flex;flex-direction:column;gap:5px;max-height:520px;overflow-y:auto;}
+.user-list{display:flex;flex-direction:column;gap:5px;}
 .user-item{background:var(--bg);border:1px solid var(--br2);border-radius:8px;padding:8px 11px;display:flex;align-items:center;gap:9px;}
 .user-item-av{width:28px;height:28px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;overflow:hidden;position:relative;}
 .user-item-av img{width:100%;height:100%;object-fit:cover;}
@@ -1129,6 +1136,13 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
 
 </div>
 
+<!-- CAMERA ZOOM OVERLAY -->
+<div id="camZoom" onclick="closeCamZoom()">
+  <button class="cz-close" onclick="event.stopPropagation();closeCamZoom()">✕</button>
+  <video id="camZoomVid" autoplay playsinline muted></video>
+  <div class="cz-label" id="camZoomLabel"></div>
+</div>
+
 <!-- VOICE OVERLAY -->
 <div id="vco">
   <div class="vcoh">
@@ -1321,6 +1335,109 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       </div>
     </div>
 
+    <!-- Channel Lockdown -->
+    <div class="apm-sec">
+      <h3>🔒 Channel Lockdown</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Lock a channel so only admins can send messages. Users can still read.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Channel to lock/unlock</label>
+          <select id="lockChSelect" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+        </div>
+        <button class="apm-btn danger" onclick="window.adminLockChannel(true)">🔒 Lock</button>
+        <button class="apm-btn" onclick="window.adminLockChannel(false)">🔓 Unlock</button>
+      </div>
+    </div>
+
+    <!-- Impersonate / Send As User -->
+    <div class="apm-sec">
+      <h3>🎭 Send As User</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Send a message in any channel as if it came from another user. Use wisely.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="impersonateUser" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>Channel</label>
+          <select id="impersonateCh" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></select>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label>Message</label><textarea id="impersonateMsg" placeholder="Message to send..." style="min-height:44px;font-size:13px;"></textarea></div>
+      <button class="apm-btn warn" style="width:100%;" onclick="window.adminSendAs()">🎭 Send As User</button>
+    </div>
+
+    <!-- Word Filter -->
+    <div class="apm-sec">
+      <h3>🚫 Word Filter</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Banned words are replaced with *** in all channels. Comma separated.</div>
+      <div class="fg" style="margin-bottom:8px;"><label>Banned words</label><textarea id="wordFilterList" placeholder="word1, word2, word3..." style="min-height:52px;font-size:13px;"></textarea></div>
+      <div style="display:flex;gap:8px;">
+        <button class="apm-btn" style="flex:1;" onclick="window.saveWordFilter()">💾 Save Filter</button>
+        <button class="apm-btn warn" onclick="window.loadWordFilter()">↺ Load Current</button>
+      </div>
+    </div>
+
+    <!-- Server MOTD -->
+    <div class="apm-sec">
+      <h3>📌 Server MOTD</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Message of the Day — shown as a pinned banner at the top of chat for all users.</div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="motdText" placeholder="Welcome to Chat Universe! 👋" style="min-height:52px;font-size:13px;"></textarea></div>
+      <div style="display:flex;gap:8px;">
+        <button class="apm-btn" style="flex:1;" onclick="window.setMOTD()">📌 Set MOTD</button>
+        <button class="apm-btn warn" onclick="window.clearMOTD()">✕ Clear MOTD</button>
+      </div>
+    </div>
+
+    <!-- Freeze User -->
+    <div class="apm-sec">
+      <h3>🧊 Freeze User</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Frozen users can read but cannot send any messages or join voice.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="freezeUser" placeholder="username" maxlength="32"></div>
+        <button class="apm-btn danger" onclick="window.adminFreezeUser()">🧊 Freeze</button>
+        <button class="apm-btn" onclick="window.adminUnfreezeUser()">🔥 Unfreeze</button>
+      </div>
+    </div>
+
+    <!-- Give Badge -->
+    <div class="apm-sec">
+      <h3>🏅 User Badges</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Give users a custom badge that shows next to their name in chat.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="badgeUser" placeholder="username" maxlength="32"></div>
+        <div class="fg"><label>Badge emoji + text</label><input type="text" id="badgeText" placeholder="e.g. ⭐ VIP" maxlength="20"></div>
+        <button class="apm-btn" onclick="window.adminGiveBadge()">Give</button>
+        <button class="apm-btn warn" onclick="window.adminRemoveBadge()">Remove</button>
+      </div>
+    </div>
+
+    <!-- Message Search -->
+    <div class="apm-sec">
+      <h3>🔍 Search All Messages</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Search for any message across all channels.</div>
+      <div class="apm-row">
+        <div class="fg"><input type="text" id="adminMsgSearch" placeholder="Search term..." maxlength="64" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;"></div>
+        <button class="apm-btn" onclick="window.adminSearchMessages()">Search</button>
+      </div>
+      <div id="adminMsgSearchResults" style="margin-top:8px;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+
+    <!-- Server Rules -->
+    <div class="apm-sec">
+      <h3>📋 Server Rules</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Shown to users when they open the rules panel. One rule per line.</div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="rulesText" placeholder="1. Be nice&#10;2. No spam&#10;3. Have fun" style="min-height:80px;font-size:13px;"></textarea></div>
+      <button class="apm-btn" style="width:100%;" onclick="window.saveRules()">💾 Save Rules</button>
+    </div>
+
+    <!-- User Notes -->
+    <div class="apm-sec">
+      <h3>📝 Admin Notes on Users</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Private notes only you can see. Good for tracking troublemakers.</div>
+      <div class="apm-row">
+        <div class="fg"><label>Username</label><input type="text" id="noteUser" placeholder="username" maxlength="32"></div>
+        <button class="apm-btn" onclick="window.adminLoadNote()">Load</button>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><textarea id="noteText" placeholder="Notes about this user..." style="min-height:60px;font-size:13px;"></textarea></div>
+      <button class="apm-btn" style="width:100%;" onclick="window.adminSaveNote()">💾 Save Note</button>
+    </div>
+
     <!-- Danger Zone -->
     <div class="apm-sec">
       <h3 style="color:var(--rd);">☢️ Danger Zone</h3>
@@ -1329,6 +1446,10 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminKickAll()">👢 Kick everyone from voice</button>
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminWipeAllDMs()">💬 Wipe ALL DMs (everyone)</button>
         <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminResetAllSlowModes()">🐢 Remove all slow modes</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminUnfreezeAll()">🔥 Unfreeze everyone</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminUnlockAllChannels()">🔓 Unlock all channels</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminWipeWordFilter()">🚫 Clear word filter</button>
+        <button class="apm-btn danger" style="width:100%;text-align:left;padding:10px 14px;" onclick="window.adminUnbanAll()">⚖️ Unban everyone</button>
       </div>
     </div>
 
@@ -1430,7 +1551,8 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
     <div id="editUserTargetInfo" style="font-size:12px;color:var(--tx3);margin-bottom:14px;"></div>
     <div class="fg"><label>Display Name</label><input type="text" id="editUserDisplayName" maxlength="32"></div>
     <div class="fg"><label>Bio</label><textarea id="editUserBio" style="min-height:52px;"></textarea></div>
-    <div class="fg"><label>Reset Password (leave blank to keep)</label><input type="text" id="editUserPassword" placeholder="New password..."></div>
+    <div class="fg"><label>&#128274; Reset Password (leave blank to keep current)</label><input type="password" id="editUserPassword" placeholder="New password (min 6 chars)..." autocomplete="new-password"></div>
+    <div style="font-size:11px;color:var(--yw);margin-top:-10px;margin-bottom:12px;">&#9888; This immediately changes their login password.</div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="canbtn" onclick="document.getElementById('editUserBD').classList.add('h')">Cancel</button>
       <button class="apm-btn" style="flex:1;padding:12px;" onclick="window.confirmEditUser()">Save Changes</button>
@@ -1489,6 +1611,22 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
     <div class="fg"><label>Bio</label><textarea id="sBio" style="min-height:60px;"></textarea></div>
     <div class="fg"><label>Birthday</label><input type="date" id="sBday"></div>
     <div class="fg"><label>New Password (blank = keep)</label><input type="password" id="sPass" placeholder="New password..."></div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--br);">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;">🎙 Voice & Audio Devices</div>
+      <div class="fg" style="margin-bottom:8px;">
+        <label>Microphone Input</label>
+        <select id="micSelect" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:8px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;">
+          <option value="">Default microphone</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:4px;">
+        <label>Audio Output (headphones/speakers)</label>
+        <select id="speakerSelect" style="width:100%;background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:8px 10px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;">
+          <option value="">Default output</option>
+        </select>
+      </div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:4px;" id="deviceNote">Selections are saved automatically and applied on your next voice call.</div>
+    </div>
     <div class="smbtns">
       <button class="canbtn" onclick="closeSet()">Cancel</button>
       <button class="abtn" style="flex:1;margin-top:0;" onclick="saveSet()">Save Changes</button>
@@ -3354,7 +3492,6 @@ window.openAdmin=function(){
   document.getElementById('adminVerInput').value='';
   renderAdminChList();
   renderAdminVcList();
-  window.loadAdminUsers();
   // Populate broadcast channel dropdown
   const sel=document.getElementById('broadcastChSelect');
   if(sel){
@@ -3373,6 +3510,8 @@ window.openAdmin=function(){
     if(slowStatus)slowStatus.textContent=sm>0?`Current: ${sm}s slow mode in #${channels[activeChannel].name}`:`No slow mode in #${channels[activeChannel].name}`;
   }
   document.getElementById('adminPanel').classList.add('on');
+  // Load after panel visible so DOM is ready
+  setTimeout(()=>window.loadAdminUsers(), 50);
 };
 window.closeAdmin=function(){document.getElementById('adminPanel').classList.remove('on');};
 
@@ -3461,7 +3600,8 @@ async function renderMsg(msg, key, channelId, scroll=true){
     if(msg.type==='image')content=`<img class="msg-img" src="${msg.dataUrl}" onclick="openLightbox(this.src)" alt="image">`;
     else if(msg.type==='video')content=`<video class="msg-vid" src="${msg.dataUrl}" controls></video>`;
     else content=`<div class="mt">${parseTxt(msg.text||'')}</div>`;
-    cont.innerHTML=`<div class="mm"><span class="mau${msg.author===me.username?' me':''}${isAdm2?' adm':''}">${esc(author.displayName||author.username)}${isAdm2?' 👑':''}</span><span class="mts">${time}</span></div>${content}`;
+    const badgeTxt=author.badge?` <span style="font-size:9px;background:rgba(108,92,231,.2);color:var(--ac2);border-radius:6px;padding:1px 5px;font-weight:600;vertical-align:middle;">${esc(author.badge)}</span>`:'';
+    cont.innerHTML=`<div class="mm"><span class="mau${msg.author===me.username?' me':''}${isAdm2?' adm':''}">${esc(author.displayName||author.username)}${isAdm2?' 👑':''}${badgeTxt}</span><span class="mts">${time}</span></div>${content}`;
     cont.querySelector('.mau').onclick=()=>openProf(msg.author);
     wrap.appendChild(av);wrap.appendChild(cont);
     if(delHtml)wrap.insertAdjacentHTML('beforeend',delHtml);
@@ -3606,8 +3746,15 @@ async function joinVC(vcId='vc-general'){
   activeVCId=vcId||'vc-general';
   const ch=vcChannels[activeVCId]||{name:'General',emoji:'🔊'};
   document.getElementById('vcot-label').textContent=`${ch.emoji||'🔊'} ${ch.name}`;
-  try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
-  catch(e){toast('Could not access microphone.');document.getElementById('vco').classList.remove('on');return;}
+  try{
+    const micConstraint=getMicConstraint();
+    localStream=await navigator.mediaDevices.getUserMedia({...micConstraint,video:false});
+  }
+  catch(e){
+    // Fallback to default mic if saved device fails
+    try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+    catch(e2){toast('Could not access microphone.');document.getElementById('vco').classList.remove('on');return;}
+  }
   inVC=true;mutedAudio=false;videoOn=false;updateVCBtns();addVCTile(me.username,localStream,true);
   await set(ref(db,`vc_presence/${activeVCId}/${me.username}`),{username:me.username,displayName:me.displayName,avatar:me.avatar,joined:Date.now()});
   onDisconnect(ref(db,`vc_presence/${activeVCId}/${me.username}`)).remove();
@@ -3722,13 +3869,48 @@ function addVCTile(username,stream,isLocal){
   const ex=document.getElementById('vct_'+username);if(ex)ex.remove();
   const u=onlineUs[username]||{username,displayName:username,avatar:{type:'emoji',val:'👤'}};
   const tile=document.createElement('div');tile.className='vcot2';tile.id='vct_'+username;
-  const vid=document.createElement('video');vid.autoplay=true;vid.playsInline=true;vid.muted=!!isLocal;
-  if(stream){vid.srcObject=stream;}
-  if(stream&&stream.getVideoTracks&&stream.getVideoTracks().filter(t=>t.readyState!=='ended').length>0)vid.classList.add('on');
+  const vid=document.createElement('video');vid.autoplay=true;vid.playsInline=true;
+  // Local tile is muted (we hear ourselves through speakers otherwise)
+  // Remote tile: audio handled by dedicated <audio> element, video element kept muted
+  vid.muted=true;
+  if(stream){
+    // For local: set full stream. For remote: video tracks only if available
+    if(isLocal){vid.srcObject=stream;}
+    else{
+      const videoTracks=stream.getVideoTracks().filter(t=>t.readyState!=='ended');
+      if(videoTracks.length){
+        const vs=new MediaStream(videoTracks);
+        vid.srcObject=vs;
+        vid.classList.add('on');
+      }
+    }
+  }
   const av=document.createElement('div');av.className='vtav';avInto(av,u.avatar,26);
   const nm=document.createElement('div');nm.className='vtname';nm.textContent=esc(u.displayName||username)+(isLocal?' (You)':'');
   const lbl=document.createElement('div');lbl.className='vtl';lbl.textContent=(u.displayName||username)+(isLocal?' (You)':'');
   tile.appendChild(vid);tile.appendChild(av);tile.appendChild(nm);tile.appendChild(lbl);
+  // Click video area to zoom in
+  tile.style.cursor='pointer';
+  tile.onclick=()=>{
+    const hasVideo=vid.srcObject&&vid.srcObject.getVideoTracks&&vid.srcObject.getVideoTracks().filter(t=>t.readyState!=='ended').length>0;
+    if(hasVideo){openCamZoom(vid.srcObject,u.displayName||username+(isLocal?' (You)':''));}
+  };
+  // For remote peers, add a dedicated audio element immediately
+  if(!isLocal&&stream){
+    const audioTracks=stream.getAudioTracks().filter(t=>t.readyState!=='ended');
+    if(audioTracks.length){
+      const aud=document.createElement('audio');
+      aud.className='remote-audio';
+      aud.autoplay=true;
+      aud.style.display='none';
+      aud.srcObject=new MediaStream(audioTracks);
+      tile.appendChild(aud);
+      aud.play().catch(()=>{
+        const retry=()=>{aud.play().catch(()=>{});document.removeEventListener('click',retry);};
+        document.addEventListener('click',retry,{once:true});
+      });
+    }
+  }
   grid.appendChild(tile);vcParts[username]={stream};
   vid.play().catch(()=>{});
 }
@@ -3803,39 +3985,75 @@ async function handleAnswer(from,answer){const pc=pcs[from];if(!pc)return;await 
 async function handleCandidate(from,candidate){const pc=pcs[from];if(!pc||!candidate)return;try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}catch(e){}}
 function createPC(target){
   const pc=new RTCPeerConnection(ICE);pcs[target]=pc;
+  let makingOffer=false;
 
   // ICE candidates
   pc.onicecandidate=e=>{
     if(e.candidate)push(ref(db,`signaling/${target}/candidates`),{from:me.username,candidate:{candidate:e.candidate.candidate,sdpMLineIndex:e.candidate.sdpMLineIndex,sdpMid:e.candidate.sdpMid}});
   };
 
-  // RENEGOTIATION — fires when tracks are added/removed after initial connection
-  // Only the caller side (whoever has a lower username alphabetically) sends the new offer
-  // to avoid offer collisions. Both sides handle incoming renegotiation offers normally.
+  // Renegotiation with makingOffer guard to prevent glare
   pc.onnegotiationneeded=async()=>{
     try{
-      if(pc.signalingState!=='stable')return; // avoid collision
+      if(makingOffer)return;
+      makingOffer=true;
       const offer=await pc.createOffer();
+      if(pc.signalingState!=='stable'){makingOffer=false;return;}
       await pc.setLocalDescription(offer);
       await push(ref(db,`signaling/${target}/offers`),{from:me.username,offer:{type:offer.type,sdp:offer.sdp}});
-    }catch(e){}
+    }catch(e){}finally{makingOffer=false;}
   };
 
-  // Incoming tracks from remote peer
+  // Incoming tracks — handle audio and video separately and reliably
   pc.ontrack=e=>{
-    const stream=e.streams[0];
+    const streams=e.streams;
     const track=e.track;
-    const tile=document.getElementById('vct_'+target);
+    const stream=streams&&streams[0];
+
+    // Ensure tile exists
+    let tile=document.getElementById('vct_'+target);
     if(!tile){
-      // Create tile with whatever stream we have
       addVCTile(target, stream||new MediaStream([track]), false);
+      tile=document.getElementById('vct_'+target);
     }
-    const vid=document.getElementById('vct_'+target)?.querySelector('video');
-    if(!vid)return;
-    // Always update srcObject to the latest stream
-    if(stream&&vid.srcObject!==stream){vid.srcObject=stream;vid.play().catch(()=>{});}
+    if(!tile)return;
+
+    if(track.kind==='audio'){
+      // Use a dedicated <audio> element for audio — much more reliable than video
+      let aud=tile.querySelector('audio.remote-audio');
+      if(!aud){
+        aud=document.createElement('audio');
+        aud.className='remote-audio';
+        aud.autoplay=true;
+        aud.style.display='none';
+        tile.appendChild(aud);
+      }
+      // Always reassign srcObject for audio
+      const audioStream=stream||new MediaStream([track]);
+      aud.srcObject=audioStream;
+      // Apply saved output device
+      const savedSpk=localStorage.getItem('nx_speaker_device');
+      if(savedSpk&&typeof aud.setSinkId==='function'){
+        aud.setSinkId(savedSpk).catch(()=>{});
+      }
+      aud.play().catch(()=>{
+        // Autoplay blocked — retry on next user interaction
+        const retry=()=>{aud.play().catch(()=>{});document.removeEventListener('click',retry);};
+        document.addEventListener('click',retry,{once:true});
+      });
+    }
+
     if(track.kind==='video'){
-      const showVid=()=>{if(track.readyState!=='ended'&&!track.muted){vid.classList.add('on');vid.play().catch(()=>{});}};
+      const vid=tile.querySelector('video');
+      if(!vid)return;
+      // Always set srcObject — don't skip if same reference, audio may have changed
+      if(stream){vid.srcObject=stream;vid.play().catch(()=>{});}
+      const showVid=()=>{
+        if(track.readyState!=='ended'&&!track.muted){
+          vid.classList.add('on');
+          vid.play().catch(()=>{});
+        }
+      };
       showVid();
       track.onunmute=showVid;
       track.onmute=()=>vid.classList.remove('on');
@@ -3843,8 +4061,24 @@ function createPC(target){
     }
   };
 
+  // Auto-reconnect on failure
   pc.onconnectionstatechange=()=>{
-    if(pc.connectionState==='disconnected'||pc.connectionState==='failed'){
+    if(pc.connectionState==='failed'){
+      // Try ICE restart
+      try{pc.restartIce();}catch(e){}
+    }
+    if(pc.connectionState==='disconnected'){
+      // Wait 3s then clean up if still disconnected
+      setTimeout(()=>{
+        if(pc.connectionState==='disconnected'||pc.connectionState==='failed'||pc.connectionState==='closed'){
+          removeVCTile(target);
+          delete pcs[target];
+          // If we're still in VC, try to reconnect
+          if(inVC)setTimeout(()=>{if(!pcs[target])initiateCall(target);},1000);
+        }
+      },3000);
+    }
+    if(pc.connectionState==='closed'){
       removeVCTile(target);
       delete pcs[target];
     }
@@ -3873,7 +4107,7 @@ window.openProf=async function(username){
 window.closePM=()=>document.getElementById('profBD').classList.add('h');
 
 // ── Settings ──
-window.openSet=()=>{
+window.openSet=async()=>{
   setAvP=null;document.getElementById('setBD').classList.remove('h');
   renderSetAv(me.avatar||{type:'emoji',val:'👤'});
   document.getElementById('sDisp').value=me.displayName||'';
@@ -3882,8 +4116,85 @@ window.openSet=()=>{
   document.getElementById('sPass').value='';
   const row=document.getElementById('sER');
   if(row)row.querySelectorAll('.eopt').forEach(el=>el.classList.toggle('sel',me.avatar&&me.avatar.type==='emoji'&&el.textContent===me.avatar.val));
+  // Populate audio device dropdowns
+  await populateAudioDevices();
 };
 window.closeSet=()=>document.getElementById('setBD').classList.add('h');
+
+// ── AUDIO DEVICE SELECTION ──
+async function populateAudioDevices(){
+  const micSel=document.getElementById('micSelect');
+  const spkSel=document.getElementById('speakerSelect');
+  const note=document.getElementById('deviceNote');
+  if(!micSel||!spkSel)return;
+
+  // Request permission first so device labels are visible (not just "Microphone 1")
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
+    tmp.getTracks().forEach(t=>t.stop());
+  }catch(e){}
+
+  let devices=[];
+  try{devices=await navigator.mediaDevices.enumerateDevices();}catch(e){return;}
+
+  const savedMic=localStorage.getItem('nx_mic_device')||'';
+  const savedSpk=localStorage.getItem('nx_speaker_device')||'';
+
+  // Populate mic dropdown
+  micSel.innerHTML='<option value="">Default microphone</option>';
+  devices.filter(d=>d.kind==='audioinput').forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.deviceId;
+    o.textContent=d.label||'Microphone '+d.deviceId.slice(0,6);
+    if(d.deviceId===savedMic)o.selected=true;
+    micSel.appendChild(o);
+  });
+
+  // Populate speaker dropdown
+  spkSel.innerHTML='<option value="">Default output</option>';
+  const spkSupported=typeof HTMLMediaElement.prototype.setSinkId==='function';
+  if(!spkSupported){
+    spkSel.innerHTML='<option value="">Not supported in this browser</option>';
+    spkSel.disabled=true;
+    if(note)note.textContent='Speaker selection requires Chrome/Edge. Mic selection works in all browsers.';
+  } else {
+    devices.filter(d=>d.kind==='audiooutput').forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.deviceId;
+      o.textContent=d.label||'Speaker '+d.deviceId.slice(0,6);
+      if(d.deviceId===savedSpk)o.selected=true;
+      spkSel.appendChild(o);
+    });
+    if(note)note.textContent='Changes are saved instantly and applied on your next voice call.';
+  }
+
+  // Save on change immediately
+  micSel.onchange=()=>{
+    localStorage.setItem('nx_mic_device',micSel.value);
+    toast('🎙 Mic saved — applies next call');
+  };
+  spkSel.onchange=async()=>{
+    localStorage.setItem('nx_speaker_device',spkSel.value);
+    // Apply to all existing audio elements right now
+    await applyOutputDevice(spkSel.value);
+    toast('🔊 Output saved'+(spkSel.value?' — applying now':''));
+  };
+}
+
+// Apply chosen output device to all remote audio elements
+async function applyOutputDevice(deviceId){
+  if(typeof HTMLMediaElement.prototype.setSinkId!=='function')return;
+  const els=document.querySelectorAll('audio.remote-audio, video');
+  for(const el of els){
+    try{await el.setSinkId(deviceId||'');}catch(e){}
+  }
+}
+
+// Get mic constraint for getUserMedia using saved preference
+function getMicConstraint(){
+  const saved=localStorage.getItem('nx_mic_device');
+  return saved?{audio:{deviceId:{exact:saved}}}:{audio:true};
+}
 window.saveSet=async()=>{
   const dn=document.getElementById('sDisp').value.trim();
   const bio=document.getElementById('sBio').value.trim();
@@ -4365,26 +4676,46 @@ let adminStatusFilter='all';
 window.loadAdminUsers=async function(){
   if(!isAdmin())return;
   const list=document.getElementById('adminUserList');
-  list.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px;">Loading all users...</div>';
+  if(!list)return;
+  list.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:10px;text-align:center;">Loading users...</div>';
   try{
-    // Load accounts
+    // Load ALL accounts — use val() on root snap for reliability
     const snap=await get(ref(db,'accounts'));
     adminUsersCache=[];
-    snap.forEach(c=>adminUsersCache.push(c.val()));
+    if(snap.exists()){
+      const allAccounts=snap.val();
+      // val() returns an object keyed by username
+      Object.values(allAccounts).forEach(u=>{
+        if(u&&u.username)adminUsersCache.push(u);
+      });
+    }
     adminUsersCache.sort((a,b)=>(a.username||'').localeCompare(b.username||''));
 
     // Load bans
     adminBansCache={};
-    try{const bs=await get(ref(db,'bans'));bs.forEach(b=>{const v=b.val();if(v.active)adminBansCache[b.key]=v;});}catch(e){}
+    try{
+      const bs=await get(ref(db,'bans'));
+      if(bs.exists()){
+        const allBans=bs.val();
+        Object.entries(allBans).forEach(([k,v])=>{if(v&&v.active)adminBansCache[k]=v;});
+      }
+    }catch(e){}
 
-    // Update server stats
+    // Reset filter to All so everything shows
+    adminStatusFilter='all';
+    ['All','Online','Offline','Banned'].forEach(s=>{
+      const btn=document.getElementById('ufilter'+s);
+      if(btn){btn.style.borderColor=s==='All'?'var(--ac)':'';btn.style.color=s==='All'?'var(--ac2)':'';}
+    });
+    document.getElementById('adminUserSearch').value='';
+
     updateServerStats();
-
-    // Render
-    applyAdminUserFilter();
+    renderAdminUserList(adminUsersCache);
     loadAdminBans();
+    toast('Loaded '+adminUsersCache.length+' users');
   }catch(e){
-    list.innerHTML='<div style="font-size:12px;color:var(--rd);padding:8px;">Error loading users: '+e.message+'</div>';
+    console.error('[Admin] loadAdminUsers error:',e);
+    list.innerHTML='<div style="font-size:12px;color:var(--rd);padding:8px;">Error: '+e.message+'</div>';
   }
 };
 
@@ -4411,10 +4742,15 @@ window.filterAdminUsers=function(q){
 };
 
 function applyAdminUserFilter(q=''){
-  q=(q||document.getElementById('adminUserSearch')?.value||'').toLowerCase();
+  q=(q||document.getElementById('adminUserSearch')?.value||'').toLowerCase().trim();
   let users=adminUsersCache.filter(u=>{
-    if(u.username===me.username)return false;
-    if(q&&!(u.username||'').toLowerCase().includes(q)&&!(u.displayName||'').toLowerCase().includes(q))return false;
+    // Text search
+    if(q){
+      const matchName=(u.displayName||'').toLowerCase().includes(q);
+      const matchUser=(u.username||'').toLowerCase().includes(q);
+      if(!matchName&&!matchUser)return false;
+    }
+    // Status filter
     if(adminStatusFilter==='online')return !!onlineUs[u.username];
     if(adminStatusFilter==='offline')return !onlineUs[u.username];
     if(adminStatusFilter==='banned')return !!adminBansCache[u.username];
@@ -4762,6 +5098,252 @@ window.adminRenameUser=async function(){
   toast(`✏️ @${username} renamed to "${newName}"`);
   window.loadAdminUsers();
 };
+
+// ── CHANNEL LOCKDOWN ──
+window.adminLockChannel=async function(lock){
+  if(!isAdmin())return;
+  const chId=document.getElementById('lockChSelect').value;
+  if(!chId){toast('Pick a channel.');return;}
+  await update(ref(db,`channels/${chId}`),{locked:lock});
+  toast(lock?`🔒 #${channels[chId]?.name} locked`:`🔓 #${channels[chId]?.name} unlocked`);
+};
+// Check lock on message send — patch into sendMsg
+const _preLockSendMsg=window.sendMsg;
+window.sendMsg=async()=>{
+  const ch=channels[activeChannel];
+  if(ch?.locked&&!isAdmin()){toast('🔒 This channel is locked by an admin.');return;}
+  return _preLockSendMsg();
+};
+window.adminUnlockAllChannels=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Unlock all channels?'))return;
+  await Promise.all(Object.keys(channels).map(id=>update(ref(db,`channels/${id}`),{locked:false})));
+  toast('🔓 All channels unlocked.');
+};
+
+// ── SEND AS USER (impersonate) ──
+window.adminSendAs=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('impersonateUser').value.trim().toLowerCase();
+  const chId=document.getElementById('impersonateCh').value;
+  const text=document.getElementById('impersonateMsg').value.trim();
+  if(!username||!chId||!text){toast('Fill all fields.');return;}
+  const snap=await get(ref(db,`accounts/${username}`));
+  if(!snap.exists()){toast('User not found.');return;}
+  const u=snap.val();
+  await push(ref(db,`channelMessages/${chId}`),{author:u.username,text,time:Date.now(),displayName:u.displayName,avatar:u.avatar});
+  document.getElementById('impersonateMsg').value='';
+  toast(`🎭 Sent as @${username}`);
+};
+
+// ── WORD FILTER ──
+let _wordFilter=[];
+onValue(ref(db,'siteConfig/wordFilter'),snap=>{
+  _wordFilter=snap.exists()?(snap.val()||'').split(',').map(w=>w.trim().toLowerCase()).filter(Boolean):[];
+});
+window.saveWordFilter=async function(){
+  if(!isAdmin())return;
+  const words=document.getElementById('wordFilterList').value.trim();
+  await set(ref(db,'siteConfig/wordFilter'),words);
+  toast('🚫 Word filter saved.');
+};
+window.loadWordFilter=async function(){
+  const snap=await get(ref(db,'siteConfig/wordFilter'));
+  document.getElementById('wordFilterList').value=snap.exists()?snap.val():'';
+  toast('Loaded current filter.');
+};
+window.adminWipeWordFilter=async function(){
+  if(!isAdmin())return;
+  await remove(ref(db,'siteConfig/wordFilter'));
+  document.getElementById('wordFilterList').value='';
+  toast('🚫 Word filter cleared.');
+};
+function applyWordFilter(text){
+  if(!_wordFilter.length)return text;
+  let out=text;
+  _wordFilter.forEach(w=>{if(w)out=out.replace(new RegExp(w,'gi'),'***');});
+  return out;
+}
+// Patch sendMsg to apply word filter
+const _preFilterSendMsg=window.sendMsg;
+window.sendMsg=async()=>{
+  const inp=document.getElementById('msgIn');
+  if(inp&&_wordFilter.length){
+    const filtered=applyWordFilter(inp.value);
+    if(filtered!==inp.value)inp.value=filtered;
+  }
+  return _preFilterSendMsg();
+};
+
+// ── MOTD ──
+window.setMOTD=async function(){
+  if(!isAdmin())return;
+  const msg=document.getElementById('motdText').value.trim();
+  if(!msg){toast('Enter a message.');return;}
+  await set(ref(db,'siteConfig/motd'),{text:msg,set:Date.now()});
+  toast('📌 MOTD set!');
+};
+window.clearMOTD=async function(){
+  if(!isAdmin())return;
+  await remove(ref(db,'siteConfig/motd'));
+  toast('MOTD cleared.');
+};
+onValue(ref(db,'siteConfig/motd'),snap=>{
+  let motd=document.getElementById('motdBanner');
+  if(snap.exists()&&snap.val()?.text){
+    if(!motd){
+      motd=document.createElement('div');
+      motd.id='motdBanner';
+      motd.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:9000;background:rgba(108,92,231,.95);color:#fff;font-size:12px;font-weight:500;text-align:center;padding:7px 40px;backdrop-filter:blur(8px);';
+      document.body.appendChild(motd);
+    }
+    motd.textContent='📌 '+snap.val().text;
+  } else {
+    if(motd)motd.remove();
+  }
+});
+
+// ── FREEZE USER ──
+window.adminFreezeUser=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('freezeUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  await update(ref(db,`accounts/${username}`),{frozen:true});
+  toast(`🧊 @${username} frozen.`);
+};
+window.adminUnfreezeUser=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('freezeUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  await update(ref(db,`accounts/${username}`),{frozen:false});
+  toast(`🔥 @${username} unfrozen.`);
+};
+window.adminUnfreezeAll=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Unfreeze all users?'))return;
+  const snap=await get(ref(db,'accounts'));
+  const updates={};
+  snap.forEach(c=>{if(c.val().frozen)updates[`accounts/${c.key}/frozen`]=false;});
+  if(Object.keys(updates).length)await update(ref(db),updates);
+  toast('🔥 Everyone unfrozen.');
+};
+// Check freeze on message send
+const _preFrozenSendMsg=window.sendMsg;
+window.sendMsg=async()=>{
+  try{const snap=await get(ref(db,`accounts/${me.username}/frozen`));if(snap.val()===true){toast('🧊 You are frozen and cannot send messages.');return;}}catch(e){}
+  return _preFrozenSendMsg();
+};
+
+// ── USER BADGES ──
+window.adminGiveBadge=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('badgeUser').value.trim().toLowerCase();
+  const badge=document.getElementById('badgeText').value.trim();
+  if(!username||!badge){toast('Enter username and badge.');return;}
+  await update(ref(db,`accounts/${username}`),{badge});
+  toast(`🏅 Badge given to @${username}`);
+};
+window.adminRemoveBadge=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('badgeUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  await update(ref(db,`accounts/${username}`),{badge:null});
+  toast(`🏅 Badge removed from @${username}`);
+};
+
+// ── MESSAGE SEARCH ──
+window.adminSearchMessages=async function(){
+  if(!isAdmin())return;
+  const q=document.getElementById('adminMsgSearch').value.trim().toLowerCase();
+  if(!q){toast('Enter a search term.');return;}
+  const results=document.getElementById('adminMsgSearchResults');
+  results.innerHTML='<div style="font-size:11px;color:var(--tx3);">Searching...</div>';
+  const found=[];
+  await Promise.all(Object.keys(channels).map(async chId=>{
+    try{
+      const snap=await get(ref(db,`channelMessages/${chId}`));
+      snap.forEach(m=>{
+        const v=m.val();
+        if(v.text&&v.text.toLowerCase().includes(q)){
+          found.push({...v,chId,key:m.key,chName:channels[chId]?.name||chId});
+        }
+      });
+    }catch(e){}
+  }));
+  found.sort((a,b)=>b.time-a.time);
+  results.innerHTML='';
+  if(!found.length){results.innerHTML='<div style="font-size:11px;color:var(--tx3);">No results.</div>';return;}
+  found.slice(0,30).forEach(m=>{
+    const d=document.createElement('div');
+    d.style.cssText='background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;font-size:11px;';
+    const t=new Date(m.time).toLocaleString();
+    d.innerHTML=`<span style="color:var(--ac2);font-weight:600;">@${esc(m.author)}</span> in <span style="color:var(--tx2);">#${esc(m.chName)}</span> <span style="color:var(--tx3);font-size:10px;">${t}</span><br><span style="color:var(--tx);">${esc(m.text)}</span>`;
+    // Delete button for search results
+    const del=document.createElement('button');del.textContent='✕ Delete';del.style.cssText='margin-top:4px;background:none;border:none;color:var(--rd);font-size:10px;cursor:pointer;padding:0;';
+    del.onclick=async()=>{await remove(ref(db,`channelMessages/${m.chId}/${m.key}`));d.remove();toast('Message deleted.');};
+    d.appendChild(del);
+    results.appendChild(d);
+  });
+  if(found.length>30)results.insertAdjacentHTML('beforeend',`<div style="font-size:11px;color:var(--tx3);">... and ${found.length-30} more</div>`);
+};
+
+// ── SERVER RULES ──
+window.saveRules=async function(){
+  if(!isAdmin())return;
+  const rules=document.getElementById('rulesText').value.trim();
+  await set(ref(db,'siteConfig/rules'),rules);
+  toast('📋 Rules saved!');
+};
+// Load rules into textarea when admin opens panel
+const _origOpenAdmin=window.openAdmin;
+window.openAdmin=async function(){
+  _origOpenAdmin();
+  try{
+    const snap=await get(ref(db,'siteConfig/rules'));
+    const rt=document.getElementById('rulesText');
+    if(rt&&snap.exists())rt.value=snap.val();
+    const mt=document.getElementById('motdText');
+    if(mt){const ms=await get(ref(db,'siteConfig/motd'));if(ms.exists())mt.value=ms.val().text||'';}
+    // Populate lock/impersonate channel dropdowns
+    ['lockChSelect','impersonateCh'].forEach(selId=>{
+      const sel=document.getElementById(selId);if(!sel)return;
+      sel.innerHTML='';
+      Object.values(channels).sort((a,b)=>(a.order||0)-(b.order||0)).forEach(ch=>{
+        const o=document.createElement('option');o.value=ch.id;o.textContent=(ch.icon||'#')+' '+ch.name;sel.appendChild(o);
+      });
+    });
+  }catch(e){}
+};
+
+// ── ADMIN NOTES ──
+window.adminLoadNote=async function(){
+  const username=document.getElementById('noteUser').value.trim().toLowerCase();
+  if(!username){toast('Enter a username.');return;}
+  try{const snap=await get(ref(db,`adminNotes/${username}`));document.getElementById('noteText').value=snap.exists()?snap.val():'';}catch(e){}
+  toast(`Notes for @${username} loaded.`);
+};
+window.adminSaveNote=async function(){
+  if(!isAdmin())return;
+  const username=document.getElementById('noteUser').value.trim().toLowerCase();
+  const note=document.getElementById('noteText').value.trim();
+  if(!username){toast('Enter a username.');return;}
+  await set(ref(db,`adminNotes/${username}`),note||null);
+  toast(`📝 Note saved for @${username}`);
+};
+
+// ── UNBAN ALL ──
+window.adminUnbanAll=async function(){
+  if(!isAdmin())return;
+  if(!confirm('Unban ALL banned users?'))return;
+  const snap=await get(ref(db,'bans'));
+  const updates={};
+  snap.forEach(b=>{updates[`bans/${b.key}/active`]=false;});
+  if(Object.keys(updates).length)await update(ref(db),updates);
+  toast('⚖️ Everyone unbanned.');
+};
+
+// Show user badge next to name in messages
+// (patched into renderMsg via author badge lookup)
 
 // ── BAN CHECK ON LOGIN ──
 async function checkBan(username){
@@ -5190,6 +5772,22 @@ function listenGroupMessages(){
     });
   });
 }
+
+// ── CAMERA ZOOM ──
+function openCamZoom(stream, label){
+  const zv=document.getElementById('camZoomVid');
+  zv.srcObject=stream;
+  zv.play().catch(()=>{});
+  document.getElementById('camZoomLabel').textContent=label||'';
+  document.getElementById('camZoom').classList.add('on');
+}
+function closeCamZoom(){
+  document.getElementById('camZoom').classList.remove('on');
+  const zv=document.getElementById('camZoomVid');
+  zv.srcObject=null;
+}
+// Close zoom on Escape
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCamZoom();});
 
 window.autoR=el=>{el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';};
 window.toast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);};
