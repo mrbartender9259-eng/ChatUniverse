@@ -129,7 +129,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);}
 .msgs{flex:1;overflow-y:auto;padding:14px 10px;display:flex;flex-direction:column;gap:1px;}
 .msgs::-webkit-scrollbar{width:5px;}
 .msgs::-webkit-scrollbar-thumb{background:var(--s3);border-radius:5px;}
-.mw{display:flex;gap:9px;padding:3px 5px;border-radius:8px;transition:background .1s;position:relative;}
+.mw{display:flex;gap:9px;padding:3px 5px 2px;border-radius:8px;transition:background .1s;position:relative;flex-wrap:wrap;}
+.mw:hover .react-btn{opacity:1;}
+.react-btn{opacity:0;position:absolute;right:36px;top:3px;background:var(--s2);border:1px solid var(--br2);border-radius:8px;padding:3px 8px;font-size:15px;cursor:pointer;transition:all .1s;line-height:1.4;color:var(--tx2);}
+.react-btn:hover{background:var(--s3);opacity:1!important;border-color:var(--ac);}
+.reactions{display:flex;flex-wrap:wrap;gap:3px;width:100%;padding-left:41px;padding-bottom:2px;}
+.rxn{display:inline-flex;align-items:center;gap:3px;background:var(--s2);border:1.5px solid var(--br2);border-radius:20px;padding:1px 7px 1px 5px;font-size:13px;cursor:pointer;transition:all .12s;user-select:none;}
+.rxn:hover{background:var(--s3);border-color:var(--ac);}
+.rxn.mine{background:rgba(108,92,231,.18);border-color:rgba(108,92,231,.5);}
+.rxn-count{font-size:11px;font-weight:600;color:var(--tx2);}
+.rxn-picker{position:fixed;z-index:900;background:var(--s1);border:1px solid var(--br);border-radius:14px;padding:12px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;max-width:320px;min-width:200px;}
+.rxn-picker-emoji{font-size:20px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:background .1s;border:none;background:none;}
+.rxn-picker-emoji:hover{background:var(--s2);}
+.rxn-picker-img{width:28px;height:28px;object-fit:contain;cursor:pointer;padding:2px;border-radius:8px;transition:background .1s;}
+.rxn-picker-img:hover{background:var(--s2);}
 .mw:hover{background:rgba(255,255,255,.02);}
 .mw.hl{background:rgba(253,234,167,.1);}
 .mw:hover .mdel{display:flex;}
@@ -242,6 +255,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);}
 .fg-body::-webkit-scrollbar-thumb{background:var(--s3);}
 .fg-section-label{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;margin-top:4px;}
 .friend-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--s1);border:1px solid var(--br2);margin-bottom:6px;}
+.friend-nick{font-size:9px;background:rgba(108,92,231,.18);color:var(--ac2);border-radius:4px;padding:1px 5px;font-weight:600;vertical-align:middle;margin-left:4px;cursor:pointer;}
+.friend-note-dot{width:6px;height:6px;border-radius:50%;background:var(--ac2);display:inline-block;margin-left:4px;vertical-align:middle;cursor:pointer;opacity:.7;}
+.fn-modal{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;}
+.fn-card{background:var(--s1);border:1px solid var(--br);border-radius:16px;padding:22px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.fn-card h4{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .friend-item:hover{background:var(--s2);}
 .friend-av{width:36px;height:36px;border-radius:50%;background:var(--s3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;overflow:hidden;position:relative;}
 .friend-av img{width:100%;height:100%;object-fit:cover;}
@@ -1546,6 +1564,30 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       </div>
     </div>
 
+    <!-- Custom Reactions -->
+    <div class="apm-sec">
+      <h3>😊 Custom Reactions</h3>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Add custom emoji or images as reactions. Everyone can use them on messages.</div>
+      <div class="apm-row" style="margin-bottom:8px;">
+        <div class="fg"><label>Emoji (paste one)</label><input type="text" id="rxnEmoji" placeholder="e.g. 🐧" maxlength="8" style="font-size:18px;"></div>
+        <button class="apm-btn" onclick="window.adminAddEmojiReaction()">+ Add Emoji</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;">— or upload a custom image —</div>
+      <div class="apm-row" style="margin-bottom:10px;">
+        <div class="fg"><label>Image name</label><input type="text" id="rxnImgName" placeholder="e.g. pepecry" maxlength="24"></div>
+        <input type="file" id="rxnImgFile" accept="image/*" style="display:none;" onchange="window.adminHandleReactionImg(event)">
+        <button class="apm-btn" onclick="document.getElementById('rxnImgFile').click()">📁 Choose Image</button>
+      </div>
+      <div id="rxnImgPreview" style="display:none;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <img id="rxnImgPreviewImg" style="width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px solid var(--br2);">
+        <span id="rxnImgPreviewName" style="font-size:12px;color:var(--tx2);"></span>
+        <button class="apm-btn" onclick="window.adminSaveReactionImg()" style="margin-left:auto;">+ Add Image</button>
+      </div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px;">Current Custom Reactions</div>
+      <div id="rxnList" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+      <button class="apm-btn warn" style="margin-top:8px;font-size:11px;" onclick="window.loadAdminReactions()">↺ Refresh</button>
+    </div>
+
     <!-- Danger Zone -->
     <div class="apm-sec">
       <h3 style="color:var(--rd);">☢️ Danger Zone</h3>
@@ -1702,6 +1744,19 @@ canvas#gc{border-radius:10px;box-shadow:0 0 40px rgba(108,92,231,.3);display:blo
       <div class="pmbio" id="profBio"></div>
       <div class="pmmeta" id="profMeta"></div>
       <div class="pmacts" id="profActs"></div>
+      <!-- Nickname & note section — only shows for other users -->
+      <div id="profNickSection" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--br2);">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;">🔒 Only You Can See This</div>
+        <div class="fg" style="margin-bottom:8px;">
+          <label>Nickname</label>
+          <input type="text" id="profNickInput" placeholder="e.g. bestie, lab partner..." maxlength="32">
+        </div>
+        <div class="fg" style="margin-bottom:10px;">
+          <label>Personal Note</label>
+          <textarea id="profNoteInput" placeholder="Anything you want to remember..." style="min-height:72px;font-size:13px;resize:vertical;"></textarea>
+        </div>
+        <button class="abtn" style="margin-top:0;width:100%;padding:9px;" onclick="saveFriendNote()">Save Nickname &amp; Note</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2243,6 +2298,21 @@ function setLogoFavicon(){
 
 // ── Changelog / Update Log ──
 const CHANGELOG = [
+  {
+    version: 'v2.7.0',
+    date: 'April 6, 2026',
+    type: 'major',
+    title: 'Reactions, Nicknames & More Cloaks!',
+    subtitle: 'React to messages, nickname your friends, and way more school site cloaks.',
+    items: [
+      { icon: '😊', text: '<strong>Emoji Reactions</strong> — Hover any message and click the smiley to react. Default emojis plus custom ones added by admin.' },
+      { icon: '🖼️', text: '<strong>Custom Reaction Images</strong> — Admins can upload custom images or emojis as reactions for everyone to use.' },
+      { icon: '📝', text: '<strong>Friend Nicknames</strong> — Click any profile and set a private nickname that only you can see. Shows everywhere instead of their real name.' },
+      { icon: '🔒', text: '<strong>Personal Notes on Friends</strong> — Add a private note about any friend from their profile. Completely client-side, nobody else sees it.' },
+      { icon: '🏫', text: '<strong>More Tab Cloaks</strong> — Added Canvas, SuccessMaker, Learning.com, Schoology, Clever, i-Ready, Prodigy, Duolingo, Quizlet, Newsela, CommonLit, Typing.com, Desmos, and IXL.' },
+    ],
+    footer: 'Stay sneaky. 😏',
+  },
   {
     version: 'v2.6.0',
     date: 'April 4, 2026',
@@ -3736,7 +3806,173 @@ async function renderMsg(msg, key, channelId, scroll=true){
     wrap.appendChild(av);wrap.appendChild(cont);
     if(delHtml)wrap.insertAdjacentHTML('beforeend',delHtml);
   }
+  // Reaction button (smiley face that appears on hover)
+  const rBtn=document.createElement('button');
+  rBtn.className='react-btn';rBtn.textContent='😊';rBtn.title='Add reaction';
+  rBtn.onclick=(e)=>{e.stopPropagation();openReactionPicker(key,channelId,rBtn);};
+  wrap.appendChild(rBtn);
+
+  // Reactions row
+  const rxnRow=document.createElement('div');rxnRow.className='reactions';rxnRow.id='rxn_'+key;
+  wrap.appendChild(rxnRow);
+
+  // Load existing reactions
+  renderReactions(key,channelId,rxnRow);
+
+  // Live-listen for reaction changes
+  onValue(ref(db,`reactions/${channelId}/${key}`),snap=>{
+    renderReactions(key,channelId,rxnRow,snap.exists()?snap.val():null);
+  });
+
   c.appendChild(wrap);if(scroll)c.scrollTop=c.scrollHeight;
+}
+
+// ── DEFAULT REACTIONS ──
+const DEFAULT_REACTIONS = ['👍','❤️','😂','😮','😢','🔥','💀','👀'];
+let customReactions = []; // loaded from Firebase {emoji/url, type:'emoji'|'image', name}
+let _rxnPickerKey=null, _rxnPickerCh=null, _rxnPickerEl=null;
+
+// Load custom reactions from Firebase
+onValue(ref(db,'siteConfig/customReactions'), snap=>{
+  customReactions = snap.exists() ? Object.values(snap.val()||{}) : [];
+});
+
+// Build and show the reaction picker near the button
+function openReactionPicker(key, channelId, btnEl){
+  document.getElementById('rxnPicker')?.remove();
+  if(_rxnPickerKey===key){_rxnPickerKey=null;return;}
+  _rxnPickerKey=key; _rxnPickerCh=channelId;
+
+  const picker=document.createElement('div');
+  picker.className='rxn-picker';picker.id='rxnPicker';
+  picker.style.maxWidth='320px';
+
+  function makeBtn(r){
+    const btn=document.createElement('button');
+    btn.style.cssText='background:none;border:1.5px solid transparent;cursor:pointer;padding:4px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .12s;';
+    btn.title=r.name||r.val||'';
+    if(r.type==='image'){
+      const img=document.createElement('img');
+      img.src=r.val;
+      img.style.cssText='width:32px;height:32px;object-fit:contain;display:block;';
+      img.onerror=()=>{btn.textContent='?';};
+      btn.appendChild(img);
+    } else {
+      btn.style.fontSize='24px';
+      btn.style.lineHeight='1';
+      btn.textContent=r.val;
+    }
+    btn.onmouseenter=()=>{btn.style.background='var(--s2)';btn.style.borderColor='var(--br2)';};
+    btn.onmouseleave=()=>{btn.style.background='none';btn.style.borderColor='transparent';};
+    btn.onclick=(e)=>{e.stopPropagation();toggleReaction(key,channelId,r);picker.remove();_rxnPickerKey=null;};
+    return btn;
+  }
+
+  // Default emoji row
+  const defaultRow=document.createElement('div');
+  defaultRow.style.cssText='display:flex;flex-wrap:wrap;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--br2);margin-bottom:8px;';
+  DEFAULT_REACTIONS.forEach(e=>defaultRow.appendChild(makeBtn({type:'emoji',val:e})));
+  picker.appendChild(defaultRow);
+
+  // Custom reactions (images + custom emojis)
+  if(customReactions.length){
+    const label=document.createElement('div');
+    label.style.cssText='font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px;';
+    label.textContent='Custom';
+    picker.appendChild(label);
+    const customRow=document.createElement('div');
+    customRow.style.cssText='display:flex;flex-wrap:wrap;gap:4px;';
+    customReactions.forEach(r=>{
+      const btn=makeBtn(r);
+      // Add name label below image
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1px;';
+      wrap.appendChild(btn);
+      if(r.name&&r.type==='image'){
+        const nm=document.createElement('span');
+        nm.style.cssText='font-size:8px;color:var(--tx3);max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
+        nm.textContent=r.name;
+        wrap.appendChild(nm);
+      }
+      customRow.appendChild(wrap);
+    });
+    picker.appendChild(customRow);
+  } else {
+    const empty=document.createElement('div');
+    empty.style.cssText='font-size:11px;color:var(--tx3);text-align:center;padding:4px 0;';
+    empty.textContent='No custom reactions yet — ask admin to add some!';
+    picker.appendChild(empty);
+  }
+
+  document.body.appendChild(picker);
+
+  // Position: above the button if room, else below
+  const rect=btnEl.getBoundingClientRect();
+  picker.style.visibility='hidden';
+  picker.style.display='flex';
+  picker.style.flexDirection='column';
+  requestAnimationFrame(()=>{
+    const ph=picker.offsetHeight;
+    const pw=picker.offsetWidth;
+    const top=rect.top-ph-8>0?rect.top-ph-8:rect.bottom+8;
+    const left=Math.max(8,Math.min(rect.left,window.innerWidth-pw-8));
+    picker.style.top=top+'px';
+    picker.style.left=left+'px';
+    picker.style.visibility='visible';
+  });
+
+  setTimeout(()=>{
+    const close=(e)=>{if(!picker.contains(e.target)&&e.target!==btnEl){picker.remove();_rxnPickerKey=null;document.removeEventListener('click',close);}};
+    document.addEventListener('click',close);
+  },10);
+}
+
+// Toggle a reaction on/off
+async function toggleReaction(key, channelId, reaction){
+  const path=`reactions/${channelId}/${key}/${me.username}`;
+  const snap=await get(ref(db,path));
+  if(snap.exists()&&snap.val().val===reaction.val){
+    // Remove reaction
+    await remove(ref(db,path));
+  } else {
+    // Set reaction
+    await set(ref(db,path),{val:reaction.val,type:reaction.type||'emoji',user:me.username});
+  }
+}
+
+// Render the reactions row for a message
+function renderReactions(key, channelId, rowEl, data){
+  if(!rowEl)return;
+  rowEl.innerHTML='';
+  if(!data)return;
+
+  // Group by reaction value
+  const groups={};
+  Object.entries(data).forEach(([user,r])=>{
+    const v=r.val;
+    if(!groups[v])groups[v]={reaction:r,users:[],count:0};
+    groups[v].users.push(user);
+    groups[v].count++;
+  });
+
+  Object.entries(groups).forEach(([val,g])=>{
+    const mine=g.users.includes(me.username);
+    const btn=document.createElement('button');
+    btn.className='rxn'+(mine?' mine':'');
+    btn.title=g.users.map(u=>(onlineUs[u]?.displayName||u)).join(', ');
+
+    if(g.reaction.type==='image'){
+      const img=document.createElement('img');
+      img.src=g.reaction.val;img.style.cssText='width:16px;height:16px;object-fit:contain;vertical-align:middle;';
+      btn.appendChild(img);
+    } else {
+      const span=document.createElement('span');span.textContent=val;btn.appendChild(span);
+    }
+    const cnt=document.createElement('span');cnt.className='rxn-count';cnt.textContent=g.count;
+    btn.appendChild(cnt);
+    btn.onclick=()=>toggleReaction(key,channelId,g.reaction);
+    rowEl.appendChild(btn);
+  });
 }
 
 window.deleteMsg=async function(key,channelId){
@@ -4218,12 +4454,17 @@ function createPC(target){
 }
 
 // ── Profile ──
+let _profCurrentUser=null;
 window.openProf=async function(username){
   let u=onlineUs[username];if(!u){try{const s=await get(ref(db,`accounts/${username}`));if(s.exists())u=s.val();}catch(e){}}if(!u)return;
+  _profCurrentUser=username;
   document.getElementById('profBD').classList.remove('h');
   avInto(document.getElementById('profAv'),u.avatar,30);
   const isAdm2=u.username.toLowerCase()===ADMIN_USERNAME||u.isAdmin===true;
-  document.getElementById('profName').innerHTML=esc(u.displayName||u.username)+(isAdm2?' <span style="font-size:12px;background:rgba(255,234,167,.15);color:var(--yw);border-radius:4px;padding:1px 6px;">👑 ADMIN</span>':'');
+  // Show nickname in profile name if set
+  const nick=getFriendNick(username);
+  const nameDisplay=nick?`${esc(nick)} <span style="font-size:11px;color:var(--tx3);font-weight:400;">(${esc(u.displayName||username)})</span>`:esc(u.displayName||username);
+  document.getElementById('profName').innerHTML=nameDisplay+(isAdm2?' <span style="font-size:12px;background:rgba(255,234,167,.15);color:var(--yw);border-radius:4px;padding:1px 6px;">👑 ADMIN</span>':'');
   document.getElementById('profHandle').textContent='@'+u.username;
   document.getElementById('profBio').textContent=u.bio||'No bio yet.';
   const meta=document.getElementById('profMeta');meta.innerHTML='';
@@ -4234,8 +4475,19 @@ window.openProf=async function(username){
   if(username!==me.username){btn.textContent='💬 Send DM';btn.onclick=()=>{closePM();openDM(username);};}
   else{btn.textContent='✏️ Edit Profile';btn.onclick=()=>{closePM();openSet();};}
   acts.appendChild(btn);
+  // Show nickname/note section only for other users
+  const nickSection=document.getElementById('profNickSection');
+  if(nickSection){
+    if(username!==me.username){
+      nickSection.style.display='';
+      document.getElementById('profNickInput').value=getFriendNick(username);
+      document.getElementById('profNoteInput').value=getFriendNote(username);
+    } else {
+      nickSection.style.display='none';
+    }
+  }
 };
-window.closePM=()=>document.getElementById('profBD').classList.add('h');
+window.closePM=()=>{document.getElementById('profBD').classList.add('h');_profCurrentUser=null;};
 
 // ── Settings ──
 window.openSet=async()=>{
@@ -4344,8 +4596,22 @@ const CLOAKS=[
   {id:'classroom',title:'Google Classroom',icon:'https://ssl.gstatic.com/classroom/favicon.png',label:'Google Classroom'},
   {id:'docs',title:'Google Docs',icon:'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico',label:'Google Docs'},
   {id:'sheets',title:'Google Sheets',icon:'https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico',label:'Google Sheets'},
-  {id:'khan',title:'Khan Academy',icon:'https://cdn.kastatic.org/images/favicon.ico',label:'Khan Academy'},
   {id:'slides',title:'Google Slides',icon:'https://ssl.gstatic.com/docs/presentations/images/favicon5.ico',label:'Google Slides'},
+  {id:'khan',title:'Khan Academy',icon:'https://cdn.kastatic.org/images/favicon.ico',label:'Khan Academy'},
+  {id:'canvas',title:'Canvas',icon:'https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico',label:'Canvas'},
+  {id:'successmaker',title:'SuccessMaker',icon:'https://www.pearson.com/favicon.ico',label:'SuccessMaker'},
+  {id:'learning',title:'Learning.com',icon:'https://www.learning.com/wp-content/themes/learning/images/favicon.ico',label:'Learning.com'},
+  {id:'schoology',title:'Schoology',icon:'https://asset-cdn.schoology.com/sites/all/themes/schoology_theme/favicon.ico',label:'Schoology'},
+  {id:'clever',title:'Clever',icon:'https://clever.com/favicon.ico',label:'Clever'},
+  {id:'iready',title:'i-Ready',icon:'https://www.curriculumassociates.com/favicon.ico',label:'i-Ready'},
+  {id:'prodigy',title:'Prodigy Math',icon:'https://www.prodigygame.com/main-en/favicon.ico',label:'Prodigy Math'},
+  {id:'duolingo',title:'Duolingo',icon:'https://d35aaqx5ub95lt.cloudfront.net/favicon.ico',label:'Duolingo'},
+  {id:'quizlet',title:'Quizlet',icon:'https://quizlet.com/favicon.ico',label:'Quizlet'},
+  {id:'newsela',title:'Newsela',icon:'https://newsela.com/favicon.ico',label:'Newsela'},
+  {id:'commonlit',title:'CommonLit',icon:'https://app.commonlit.org/favicon.ico',label:'CommonLit'},
+  {id:'typing',title:'Typing.com',icon:'https://www.typing.com/favicon.ico',label:'Typing.com'},
+  {id:'desmos',title:'Desmos',icon:'https://www.desmos.com/favicon.ico',label:'Desmos'},
+  {id:'ixl',title:'IXL Learning',icon:'https://www.ixl.com/favicon.ico',label:'IXL'},
 ];
 function buildCloak(){
   const wrap=document.getElementById('cloakOpts');
@@ -5648,6 +5914,80 @@ window.adminWipeAllBadges=async function(){
 
 // Pin channel dropdown is populated inside openAdmin already (merged below)
 
+// ── CUSTOM REACTIONS ADMIN ──
+let _pendingRxnImg=null;
+
+window.adminAddEmojiReaction=async function(){
+  if(!isAdmin())return;
+  const emoji=document.getElementById('rxnEmoji').value.trim();
+  if(!emoji){toast('Paste an emoji first.');return;}
+  const key='rxn_'+Date.now();
+  await set(ref(db,`siteConfig/customReactions/${key}`),{type:'emoji',val:emoji,name:emoji});
+  document.getElementById('rxnEmoji').value='';
+  toast('😊 Reaction added: '+emoji);
+  window.loadAdminReactions();
+};
+
+window.adminHandleReactionImg=function(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>512*1024){toast('Image too large — max 512KB for reactions');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    _pendingRxnImg=ev.target.result;
+    const preview=document.getElementById('rxnImgPreview');
+    const img=document.getElementById('rxnImgPreviewImg');
+    const nm=document.getElementById('rxnImgPreviewName');
+    const name=document.getElementById('rxnImgName').value.trim()||file.name.split('.')[0];
+    document.getElementById('rxnImgName').value=name;
+    img.src=ev.target.result;
+    nm.textContent=name;
+    preview.style.display='flex';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.adminSaveReactionImg=async function(){
+  if(!isAdmin()||!_pendingRxnImg)return;
+  const name=document.getElementById('rxnImgName').value.trim()||'custom';
+  const key='rxn_'+Date.now();
+  await set(ref(db,`siteConfig/customReactions/${key}`),{type:'image',val:_pendingRxnImg,name});
+  _pendingRxnImg=null;
+  document.getElementById('rxnImgPreview').style.display='none';
+  document.getElementById('rxnImgName').value='';
+  document.getElementById('rxnImgFile').value='';
+  toast('🖼️ Custom reaction image added: '+name);
+  window.loadAdminReactions();
+};
+
+window.loadAdminReactions=async function(){
+  const list=document.getElementById('rxnList');if(!list)return;
+  list.innerHTML='';
+  const snap=await get(ref(db,'siteConfig/customReactions'));
+  if(!snap.exists()||!snap.val()){list.innerHTML='<span style="font-size:11px;color:var(--tx3);">No custom reactions yet.</span>';return;}
+  Object.entries(snap.val()).forEach(([key,r])=>{
+    const item=document.createElement('div');
+    item.style.cssText='display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--br2);border-radius:20px;padding:3px 8px 3px 5px;font-size:12px;';
+    if(r.type==='image'){
+      const img=document.createElement('img');img.src=r.val;img.style.cssText='width:20px;height:20px;object-fit:contain;border-radius:4px;';
+      item.appendChild(img);
+    } else {
+      const sp=document.createElement('span');sp.textContent=r.val;sp.style.fontSize='16px';item.appendChild(sp);
+    }
+    const nm=document.createElement('span');nm.textContent=r.name||r.val;nm.style.color='var(--tx2)';item.appendChild(nm);
+    const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;color:var(--tx3);cursor:pointer;font-size:11px;padding:0 0 0 4px;';
+    del.onclick=async()=>{await remove(ref(db,`siteConfig/customReactions/${key}`));item.remove();toast('Reaction removed.');};
+    item.appendChild(del);
+    list.appendChild(item);
+  });
+};
+
+// Load reactions list when admin panel opens
+const _rxnOrigOpenAdmin=window.openAdmin;
+window.openAdmin=async function(){
+  await _rxnOrigOpenAdmin();
+  window.loadAdminReactions();
+};
+
 // ── UNBAN ALL ──
 window.adminUnbanAll=async function(){
   if(!isAdmin())return;
@@ -5889,17 +6229,64 @@ function renderFriendTab(tab){
 }
 
 function makeFriendItem(u,actions,isOnline){
+  const username=u.username;
+  const nick=getFriendNick(username);
+  const note=getFriendNote(username);
+
   const d=document.createElement('div');d.className='friend-item';
   const av=document.createElement('div');av.className='friend-av';avInto(av,u.avatar,18);
-  const dot=document.createElement('div');dot.className='gd'+(isOnline?'':' off');av.appendChild(dot);
+  if(isOnline!==undefined){const dot=document.createElement('div');dot.className='gd'+(isOnline?'':' off');av.appendChild(dot);}
+
   const info=document.createElement('div');info.className='friend-info';
-  info.innerHTML=`<div class="friend-name">${esc(u.displayName||u.username)}</div><div class="friend-sub">@${esc(u.username)}${isOnline!==undefined?(' · '+(isOnline?'<span style="color:var(--gr)">Online</span>':'Offline')):''}</div>`;
+  const displayName=nick||u.displayName||username;
+  // Small "nick" pill and note dot — clicking opens their profile
+  const nickBadge=nick?`<span class="friend-nick" title="Your nickname">nick</span>`:'';
+  const noteDot=note?`<span class="friend-note-dot" title="You have a personal note"></span>`:'';
+  const onlineTxt=isOnline!==undefined?(' · '+(isOnline?'<span style="color:var(--gr)">Online</span>':'Offline')):'';
+  info.innerHTML=`<div class="friend-name">${esc(displayName)}${nickBadge}${noteDot}</div><div class="friend-sub">@${esc(username)}${nick?` · <span style="color:var(--tx3)">${esc(u.displayName||username)}</span>`:''}${onlineTxt}</div>`;
+  // Clicking name/avatar opens profile where they can edit nick/note
+  info.style.cursor='pointer';
+  info.onclick=()=>openProf(username);
+
   const acts=document.createElement('div');acts.className='friend-acts';
   actions.forEach(a=>{
     const b=document.createElement('button');b.className='frbtn '+(a.cls||'');b.textContent=a.label;b.onclick=a.fn;acts.appendChild(b);
   });
   d.appendChild(av);d.appendChild(info);d.appendChild(acts);
   return d;
+}
+
+// ── FRIEND NICKNAMES & NOTES (client-side, localStorage only) ──
+function _fnKey(username){ return 'fn_'+me.username+'_'+username; }
+
+function getFriendNick(username){
+  try{ const d=JSON.parse(localStorage.getItem(_fnKey(username)));return d?.nick||''; }catch(e){return '';}
+}
+function getFriendNote(username){
+  try{ const d=JSON.parse(localStorage.getItem(_fnKey(username)));return d?.note||''; }catch(e){return '';}
+}
+function setFriendData(username,nick,note){
+  localStorage.setItem(_fnKey(username),JSON.stringify({nick:nick||'',note:note||''}));
+}
+
+// Friend nick/note editing is now inside the profile modal (openProf)
+function saveFriendNote(){
+  const username=_profCurrentUser;
+  if(!username)return;
+  const nick=document.getElementById('profNickInput').value.trim();
+  const note=document.getElementById('profNoteInput').value.trim();
+  setFriendData(username,nick,note);
+  // Refresh name shown in profile
+  const nameEl=document.getElementById('profName');
+  const u=onlineUs[username]||{displayName:username};
+  if(nameEl){
+    const isAdm2=(onlineUs[username]?.username||'').toLowerCase()===ADMIN_USERNAME||onlineUs[username]?.isAdmin===true;
+    const nameDisplay=nick?`${esc(nick)} <span style="font-size:11px;color:var(--tx3);font-weight:400;">(${esc(u.displayName||username)})</span>`:esc(u.displayName||username);
+    nameEl.innerHTML=nameDisplay+(isAdm2?' <span style="font-size:12px;background:rgba(255,234,167,.15);color:var(--yw);border-radius:4px;padding:1px 6px;">👑 ADMIN</span>':'');
+  }
+  // Refresh friends list if visible
+  if(currentFriendTab==='all')renderFriendTab('all');
+  toast(nick?`Nickname "${nick}" saved for @${username}`:`Note saved for @${username}`);
 }
 
 window.sendFriendRequest=async function(){
